@@ -59,7 +59,7 @@ type CryptoTests() =
 
         let encrypted = AesIge.encrypt randomData key iv
 
-        let decrypted = AesIge.decrypt randomData key iv
+        let decrypted = AesIge.decrypt encrypted key iv
 
         Assert.Equal<byte>(randomData, decrypted)
 
