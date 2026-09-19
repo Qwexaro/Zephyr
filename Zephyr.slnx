@@ -1,2 +1,5 @@
 <Solution>
+  <Folder Name="/Crypto/">
+    <Project Path="Crypto/Zephyr.Crypto.fsproj" />
+  </Folder>
 </Solution>
