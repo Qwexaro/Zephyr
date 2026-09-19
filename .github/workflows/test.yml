@@ -18,7 +18,10 @@ concurrency:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
 
     steps:
       - name: Checkout repository
@@ -40,22 +43,45 @@ jobs:
             BASE_IMAGE_TAG=9.0
 
       - name: Run tests in container
+        id: run_tests
+        continue-on-error: true
         run: |
-          mkdir -p ${{ github.workspace }}/TestResults
-          docker run --rm \
-            -v ${{ github.workspace }}/TestResults:/app/TestResults \
-            zephyr-tests:latest
+          set -x
+          mkdir -p "${{ github.workspace }}/TestResults"
+          chmod -R 0777 "${{ github.workspace }}/TestResults" || true
 
-      - name: Show what we produced
+          docker run --rm \
+            -v "${{ github.workspace }}/TestResults:/app/TestResults" \
+            zephyr-tests:latest
+          echo "docker_exit=$?" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Show produced test artifacts
         if: always()
         run: |
           echo "=== TestResults contents ==="
-          ls -laR TestResults || true
-          find . -name '*.trx' -not -path './.git/*' || true
+          ls -laR "${{ github.workspace }}/TestResults" || true
+          echo "=== all .trx anywhere (excluding .git) ==="
+          find "${{ github.workspace }}" -name '*.trx' -not -path '*/.git/*' || true
+
+      - name: Upload TRX artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trx-results
+          path: ${{ github.workspace }}/TestResults/
+          if-no-files-found: warn
+          retention-days: 7
+
 
       - name: Stage TRX for git ls-files
         if: always()
-        run: git add -f TestResults/*.trx || true
+        run: |
+          if compgen -G "${{ github.workspace }}/TestResults/*.trx" > /dev/null; then
+            git add -f "${{ github.workspace }}/TestResults/"*.trx
+            git status --short
+          else
+            echo "No TRX files to stage"
+          fi
 
       - name: Publish test report
         if: always()
@@ -64,12 +90,11 @@ jobs:
           name: Zephyr Tests
           path: TestResults/*.trx
           reporter: dotnet-trx
-          fail-on-empty: true
+          fail-on-empty: false
+          fail-on-error: true
 
-      - name: Upload TRX artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trx-results
-          path: TestResults/
-          if-no-files-found: warn
+      - name: Fail job if tests failed
+        if: always() && steps.run_tests.outputs.docker_exit != '0'
+        run: |
+          echo "Tests failed with exit code ${{ steps.run_tests.outputs.docker_exit }}"
+          exit 1

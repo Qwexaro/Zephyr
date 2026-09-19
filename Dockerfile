@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.6
-
 ARG BASE_REGISTRY=mcr.microsoft.com
 ARG BASE_IMAGE_TAG=10.0
 FROM ${BASE_REGISTRY}/dotnet/sdk:${BASE_IMAGE_TAG} AS build-env
@@ -20,6 +18,8 @@ COPY Crypto/ ./Crypto/
 COPY TL/     ./TL/
 COPY Core/   ./Core/
 COPY Tests/  ./Tests/
+
+RUN mkdir -p /app/TestResults && chmod -R 0777 /app/TestResults
 
 ENTRYPOINT ["dotnet", "test", "Zephyr.slnx", \
             "--configuration", "Release", \
