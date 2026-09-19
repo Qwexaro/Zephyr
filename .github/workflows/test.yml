@@ -1,0 +1,60 @@
+name: Run Zephyr Tests
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: zephyr-tests:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BASE_REGISTRY=mcr.microsoft.com
+            BASE_IMAGE_TAG=9.0
+
+      - name: Run tests
+        run: |
+          mkdir -p TestResults
+          docker run --rm \
+            -v "${{ github.workspace }}/TestResults:/app/TestResults" \
+            zephyr-tests:latest
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Zephyr Tests
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+
+      - name: Upload TRX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trx-results
+          path: TestResults/
