@@ -4,9 +4,6 @@ open System
 open System.Security.Cryptography
 
 module AesIge =
-    let private xorBlocks (src1: ReadOnlySpan<byte>) (src2: ReadOnlySpan<byte>) (dst: Span<byte>) (length: int) =
-        for i in 0 .. length - 1 do
-            dst[i] <- src1[i] ^^^ src2[i]
 
     let private processIge (data: byte[]) (key: byte[]) (iv: byte[]) (encrypt: bool) : byte[] =
         if data.Length % 16 <> 0 then invalidArg "data" "The data length must be a multiple of 16 bytes (the AES block size)."
@@ -31,54 +28,59 @@ module AesIge =
 
             let blocksCount = data.Length / blockSize
 
-            let mutable ivX1 = iv[0..15]
 
-            let mutable ivX2 = iv[16..31]
+            let x1 = Array.zeroCreate blockSize
 
-            let mutable x1 = ReadOnlySpan<byte>(ivX1)
+            let x2 = Array.zeroCreate blockSize
 
-            let mutable x2 = ReadOnlySpan<byte>(ivX2)
+            Array.Copy(iv, 0, x1, 0, blockSize)
 
-            let bufferIn = Span<byte>(Array.zeroCreate blockSize)
+            Array.Copy(iv, 16, x2, 0, blockSize)
 
-            let bufferOut = Span<byte>(Array.zeroCreate blockSize)
+
+            let bufferIn = Array.zeroCreate blockSize
+
+            let bufferOut = Array.zeroCreate blockSize
 
             for i in 0 .. blocksCount - 1 do
                 let offset = i * blockSize
 
-                let currentBlock = ReadOnlySpan<byte>(data, offset, blockSize)
-
-                let outputBlock = Span<byte>(cipherText, offset, blockSize)
-
                 if encrypt then
-                    // IGE encrypt
-                    xorBlocks currentBlock x1 bufferIn blockSize
+                    // IGE encrypt formul
 
-                    transform.TransformBlock(bufferIn.ToArray(), 0, blockSize, bufferOut.ToArray(), 0) |> ignore
+                    for j in 0 .. blockSize - 1 do
+                        bufferIn[j] <- data[offset + j] ^^^ x1[j]
 
-                    xorBlocks bufferOut x2 outputBlock blockSize
+                    transform.TransformBlock(bufferIn, 0, blockSize, bufferOut, 0) |> ignore
 
-                    x1 <- ReadOnlySpan<byte>(cipherText, offset, blockSize)
+                    for j in 0 .. blockSize - 1 do 
+                        cipherText[offset + j] <- bufferOut[j] ^^^ x2[j]
 
-                    x2 <- ReadOnlySpan<byte>(currentBlock.ToArray())
+                    Array.Copy(cipherText, offset, x1, 0, blockSize)
 
+                    Array.Copy(data, offset, x2, 0, blockSize)
+                        
                 else
                 
-                    xorBlocks currentBlock x2 bufferIn blockSize
+                    for j in 0 .. blockSize - 1 do
+                        bufferIn[j] <- data[offset + j] ^^^ x2[j]
 
-                    transform.TransformBlock(bufferIn.ToArray(), 0, blockSize, bufferOut.ToArray(), 0) |> ignore
+                    transform.TransformBlock(bufferIn, 0, blockSize, bufferOut, 0) |> ignore
 
-                    xorBlocks bufferOut x1 outputBlock blockSize
+                    for j in 0 .. blockSize - 1 do
+                        cipherText[offset + j] <- bufferOut[j] ^^^ x1[j]
 
-                    x1 <- ReadOnlySpan(currentBlock.ToArray())
+                    Array.Copy(data, offset, x1, 0, blockSize)
 
-                    x2 <- ReadOnlySpan<byte>(cipherText, offset, blockSize)
+                    Array.Copy(cipherText, offset, x2, 0, blockSize)
 
             cipherText
         )
 
     let encrypt (data: byte[]) (key: byte[]) (iv: byte[]) : byte[] =
+        
         processIge data key iv true
 
     let decrypt (data: byte[]) (key: byte[]) (iv: byte[]) : byte[] =
+        
         processIge data key iv false
