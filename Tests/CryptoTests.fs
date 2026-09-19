@@ -116,3 +116,60 @@ type HashTests() =
         Assert.Equal(32, hash.Length)
 
         Assert.Equal(expectedHex, resultHex)
+
+
+type PrimeTests() =
+
+    [<Fact>]
+    member _.``bytesToBigInt and bigIntToBytes must correctly convert data without losing the sign.`` () =
+
+        let originalBytes = [| 0x01uy; 0x02uy; 0x03uy; 0x04uy; 0x05uy |]
+
+        let bigInt = Prime.bytesToBigInt originalBytes
+
+        let resultBytes = Prime.bigIntToBytes bigInt 5
+
+        Assert.Equal<byte>(originalBytes, resultBytes)
+
+    [<Fact>]
+    member _.``bigIntToBytes should add zero padding if the number is shorter than the specified length.`` () =
+
+        let originalBytes = [| 0x05uy |]
+
+        let bigInt = Prime.bytesToBigInt originalBytes
+
+        let resultBytes = Prime.bigIntToBytes bigInt 4
+
+        let expectedBytes = [| 0uy; 0uy; 0uy; 0x05uy |]
+
+        Assert.Equal<byte>(expectedBytes, resultBytes)
+
+    [<Fact>]
+    member _.``modPow must correctly calculate the remainder of a division involving a huge exponent.`` () =
+
+        let baseNum = System.Numerics.BigInteger(2)
+
+        let exponent = System.Numerics.BigInteger(5)
+
+        let modulus = System.Numerics.BigInteger(13)
+
+        let result = Prime.modPow baseNum exponent modulus
+
+        let expected = System.Numerics.BigInteger(6)
+
+        Assert.Equal(expected, result)
+
+    [<Fact>]
+    member _.``generateRandomBytes should generate an array of the correct length with random content.`` () =
+
+        let length = 64
+
+        let bytes1 = Prime.generateRandomBytes length
+
+        let bytes2 = Prime.generateRandomBytes length
+
+        Assert.Equal(length, bytes1.Length)
+
+        Assert.Equal(length, bytes2.Length)
+
+        Assert.NotEqual<byte>(bytes1, bytes2)
