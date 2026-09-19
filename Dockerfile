@@ -5,7 +5,8 @@ FROM ${BASE_REGISTRY}/dotnet/sdk:${BASE_IMAGE_TAG} AS build-env
 WORKDIR /app
 
 COPY Zephyr.slnx ./
-COPY global.json Directory.Build.props Directory.Packages.props NuGet.config* ./
+
+COPY global.json* Directory.Build.props* Directory.Packages.props* NuGet.config* ./
 
 COPY Crypto/Zephyr.Crypto.fsproj ./Crypto/
 COPY TL/Zephyr.TL.fsproj         ./TL/
