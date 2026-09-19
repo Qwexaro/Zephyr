@@ -2,4 +2,7 @@
   <Folder Name="/Crypto/">
     <Project Path="Crypto/Zephyr.Crypto.fsproj" />
   </Folder>
+  <Folder Name="/TL/">
+    <Project Path="TL/Zephyr.TL.fsproj" />
+  </Folder>
 </Solution>
