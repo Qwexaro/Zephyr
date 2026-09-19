@@ -77,3 +77,42 @@ type CryptoTests() =
         Assert.Throws<ArgumentException>(fun() ->
             AesIge.encrypt validData invalidKey validIv |> ignore
         ) |> ignore
+
+
+type HashTests() =
+
+    [<Fact>]
+    member _.``SHA-1 must return a correct 20-byte hash.`` () =
+
+        let input = Encoding.UTF8.GetBytes("The quick brown fox jumps over the lazy dog")
+
+        let hash = Hash.sha1 input
+
+
+        // Etolon SHA-1 for this string in hex formate
+        let expectedHex = "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
+
+
+        let resultHex = Convert.ToHexString(hash).ToLower()
+
+        Assert.Equal(20, hash.Length)
+
+        Assert.Equal(expectedHex, resultHex)
+
+    [<Fact>]
+    member _.``SHA-256 must return a correct 32-byte hash.`` () =
+
+        let input = Encoding.UTF8.GetBytes("The quick brown fox jumps over the lazy dog")
+
+        let hash = Hash.sha256 input
+
+
+        // Etolon SHA-256 for this string in hex formate
+        let expectedHex = "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
+
+
+        let resultHex = Convert.ToHexString(hash).ToLower()
+
+        Assert.Equal(32, hash.Length)
+
+        Assert.Equal(expectedHex, resultHex)
