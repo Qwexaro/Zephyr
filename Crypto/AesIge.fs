@@ -78,7 +78,7 @@ module AesIge =
         )
 
     let encrypt (data: byte[]) (key: byte[]) (iv: byte[]) : byte[] =
-        failwith "TODOO"
+        processIge data key iv true
 
     let decrypt (data: byte[]) (key: byte[]) (iv: byte[]) : byte[] =
-        failwith "TODOO"
+        processIge data key iv false
