@@ -40,7 +40,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BASE_REGISTRY=mcr.microsoft.com
-            BASE_IMAGE_TAG=9.0
+            BASE_IMAGE_TAG=10.0
 
       - name: Run tests in container
         id: run_tests
