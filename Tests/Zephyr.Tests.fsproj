@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Crypto\Zephyr.Crypto.fsproj" />
+    <ProjectReference Include="..\TL\Zephyr.TL.fsproj" />
   </ItemGroup>
 
 </Project>
