@@ -46,6 +46,17 @@ jobs:
             -v ${{ github.workspace }}/TestResults:/app/TestResults \
             zephyr-tests:latest
 
+      - name: Show what we produced
+        if: always()
+        run: |
+          echo "=== TestResults contents ==="
+          ls -laR TestResults || true
+          find . -name '*.trx' -not -path './.git/*' || true
+
+      - name: Stage TRX for git ls-files
+        if: always()
+        run: git add -f TestResults/*.trx || true
+
       - name: Publish test report
         if: always()
         uses: dorny/test-reporter@v2
