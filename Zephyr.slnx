@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Core/">
+    <Project Path="Core/Zephyr.Core.fsproj" />
+  </Folder>
   <Folder Name="/Crypto/">
     <Project Path="Crypto/Zephyr.Crypto.fsproj" />
   </Folder>
