@@ -15,6 +15,8 @@ open System
 open System.Text
 open Zephyr.Crypto
 open Zephyr.TL
+open Zephyr.Core
+open System.Threading.Tasks
 
 type CryptoTests() =
 
@@ -244,3 +246,132 @@ type TlReaderTests() =
         Assert.Equal<byte>(originalData, resultData)
 
         Assert.False(reader.HasMore())
+
+
+
+type TcpTransportTests() =
+
+    /// <summary>
+    ///  An additional method for launching a local test TCP server on a random available port.
+    /// </summary>
+    let startLocalServer () =
+        
+        let listener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        
+        listener.Start()
+        
+        let port = (listener.LocalEndpoint :?> Net.IPEndPoint).Port
+        
+        listener, port
+
+    [<Fact>]
+    member _.``TcpTransport must successfully connect and send the 0xEF initialization byte`` () =
+        task {
+            
+            let listener, port = startLocalServer()
+            
+            let serverTask = task {
+            
+                use! clientConnection = listener.AcceptTcpClientAsync()
+            
+                use serverStream = clientConnection.GetStream()
+            
+                let buffer = Array.zeroCreate 1
+            
+                let! readBytes = serverStream.ReadAsync(Memory<byte>(buffer))
+            
+                return buffer.[0], readBytes
+            }
+
+            use transport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+
+            let! initByte, readCount = serverTask
+            
+            listener.Stop()
+
+            Assert.Equal(1, readCount)
+            
+            Assert.Equal(0xEFuy, initByte)
+        
+        }
+
+    [<Fact>]
+    member _.``TcpTransport must correctly encode and send short packets`` () =
+        task {
+            
+            let listener, port = startLocalServer()
+            
+            let testPacket = Array.init 16 (fun i -> byte i)
+
+            let serverTask = task {
+            
+                use! clientConnection = listener.AcceptTcpClientAsync()
+            
+                use serverStream = clientConnection.GetStream()
+                
+                let buffer = Array.zeroCreate 18
+            
+                let mutable totalRead = 0
+            
+                while totalRead < 18 do
+            
+                    let! read = serverStream.ReadAsync(Memory<byte>(buffer, totalRead, length = 18 - totalRead))
+            
+                    totalRead <- totalRead + read
+            
+                return buffer
+            
+            }
+
+            use transport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            do! transport.SendPacketAsync(testPacket)
+
+            let! receivedBuffer = serverTask
+            
+            listener.Stop()
+
+            Assert.Equal(4uy, receivedBuffer.[1])
+            
+            Assert.Equal<byte>(testPacket, receivedBuffer.[2..])
+        }
+
+    [<Fact>]
+    member _.``TcpTransport must correctly receive incoming packets`` () =
+        task {
+            let listener, port = startLocalServer()
+            
+            let expectedData = [| 10uy; 20uy; 30uy; 40uy |] // 4 байта (1 слово)
+
+            let serverTask = task {
+            
+                use! clientConnection = listener.AcceptTcpClientAsync()
+            
+                use serverStream = clientConnection.GetStream()
+                
+                let initBuf = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+
+                let response = [| 1uy; 10uy; 20uy; 30uy; 40uy |]
+            
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(response))
+            
+            }
+
+            use transport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let! _ = Task.WhenAny(serverTask, Task.Delay(1000))
+
+            let! receivedPacket = transport.ReceivePacketAsync()
+            
+            listener.Stop()
+
+            Assert.Equal<byte>(expectedData, receivedPacket)
+        }
