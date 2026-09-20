@@ -14,6 +14,7 @@ open Xunit
 open System
 open System.Text
 open Zephyr.Crypto
+open Zephyr.TL
 
 type CryptoTests() =
 
@@ -99,7 +100,7 @@ type HashTests() =
         let hash = Hash.sha1 input
 
 
-        // Etolon SHA-1 for this string in hex formate
+        // Reference SHA-1 for this string in hex format
         let expectedHex = "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
 
 
@@ -117,7 +118,7 @@ type HashTests() =
         let hash = Hash.sha256 input
 
 
-        // Etolon SHA-256 for this string in hex formate
+        // Reference SHA-256 for this string in hex format
         let expectedHex = "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
 
 
@@ -183,3 +184,63 @@ type PrimeTests() =
         Assert.Equal(length, bytes2.Length)
 
         Assert.NotEqual<byte>(bytes1, bytes2)
+
+
+type TlReaderTests() =
+
+    [<Fact>]
+    member _.``TlReader must successfully decode integers and long integers`` () =
+        
+        use writer = new TlWriter()
+
+        writer.WriteInt 1337
+
+        writer.WriteLong 9876543210123L
+
+        let bytes = writer.ToBytes()
+
+        use reader = new TlReader(bytes)
+
+        Assert.Equal(1337, reader.ReadInt())
+
+        Assert.Equal(9876543210123L, reader.ReadLong())
+
+        Assert.False(reader.HasMore())
+    
+    [<Fact>]
+    member _.``TlReader must correctly skip alignment padding when reading strings`` () =
+
+        use writer = new TlWriter()
+
+        writer.WriteBytes "Bonjur!"
+
+        writer.WriteBytes "F#"
+
+        let bytes = writer.ToBytes()
+
+        use reader = new TlReader(bytes)
+
+        Assert.Equal("Bonjur!", reader.ReadString())
+
+        Assert.Equal("F#", reader.ReadString())
+
+        Assert.False(reader.HasMore())
+
+    [<Fact>]
+    member _.``TlReader and TlWriter must seamlessly handle large byte arrays`` () =
+
+        let originalData = Array.init 300 (fun i -> byte (i % 256))
+
+        use writer = new TlWriter()
+
+        writer.WriteBytes originalData // triggers overload for byte[]
+
+        let bytes = writer.ToBytes()
+
+        use reader = new TlReader(bytes)
+
+        let resultData = reader.ReadBytes()
+
+        Assert.Equal<byte>(originalData, resultData)
+
+        Assert.False(reader.HasMore())

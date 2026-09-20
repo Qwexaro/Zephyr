@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="TlWriter.fs" />
     <Compile Include="TlReader.fs" />
   </ItemGroup>
 
