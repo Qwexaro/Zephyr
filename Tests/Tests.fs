@@ -21,110 +21,112 @@ open System.Threading.Tasks
 type CryptoTests() =
 
     [<Fact>]
-    member _.``AesIge must successfully encrypt and decrypt a text character.`` () =
+    member _.``AesIge must successfully encrypt and decrypt a text character.`` (): unit =
         
-        let originalText = "Bonjur MTProto F# telegram Client!"
+        let originalText: string = "Bonjur MTProto F# telegram Client!"
 
-        let rawBytes = Encoding.UTF8.GetBytes(originalText)
+        let rawBytes: byte array = Encoding.UTF8.GetBytes(originalText)
 
-        let blockSize = 16
+        let blockSize: int = 16
 
-        let remainder = rawBytes.Length % blockSize
+        let remainder: int = rawBytes.Length % blockSize
 
-        let paddingLength = if remainder = 0 then 0 else blockSize - remainder
+        let paddingLength: int = if remainder = 0 then 0 else blockSize - remainder
 
-        let paddedData = Array.concat [ rawBytes; Array.zeroCreate paddingLength ]
+        let paddedData: byte array = Array.concat [ rawBytes; Array.zeroCreate paddingLength ]
 
-        let fakeKey = Array.init 32 (fun i-> byte(i * 3))
+        let fakeKey: byte array = Array.init 32 (fun i-> byte(i * 3))
 
-        let fakeIv = Array.init 32 (fun i -> byte(i + 5))
+        let fakeIv: byte array = Array.init 32 (fun i -> byte(i + 5))
 
-        let encrypted = AesIge.encrypt paddedData fakeKey fakeIv
+        let encrypted: byte array = AesIge.encrypt paddedData fakeKey fakeIv
 
         Assert.NotEqual<byte>(paddedData, encrypted)
 
         Assert.Equal(paddedData.Length, encrypted.Length)
 
-        let decrypted = AesIge.decrypt encrypted fakeKey fakeIv
+        let decrypted: byte array = AesIge.decrypt encrypted fakeKey fakeIv
 
-        let resultText = Encoding.UTF8.GetString(decrypted).TrimEnd('\000')
+        let resultText: string = Encoding.UTF8.GetString(decrypted).TrimEnd('\000')
 
         Assert.Equal(originalText, resultText)
 
     [<Fact>]
-    member _.``AesIge must work correctly with long, random binary blocks.`` () =
+    member _.``AesIge must work correctly with long, random binary blocks.`` (): unit =
         
-        let dataLength = 1024
+        let dataLength: int = 1024
 
-        let randomData = Array.zeroCreate dataLength
+        let randomData: byte array = Array.zeroCreate dataLength
 
-        let rng = Random()
+        let rng: Random = Random()
 
-        rng.NextBytes(randomData)
+        rng.NextBytes randomData
 
-        let key = Array.zeroCreate 32
+        let key: byte array = Array.zeroCreate 32
 
-        let iv = Array.zeroCreate 32
+        let iv: byte array = Array.zeroCreate 32
 
-        rng.NextBytes(key)
+        rng.NextBytes key
 
-        rng.NextBytes(iv)
+        rng.NextBytes iv
 
-        let encrypted = AesIge.encrypt randomData key iv
+        let encrypted: byte array = AesIge.encrypt randomData key iv
 
-        let decrypted = AesIge.decrypt encrypted key iv
+        let decrypted: byte array = AesIge.decrypt encrypted key iv
 
         Assert.Equal<byte>(randomData, decrypted)
 
     [<Fact>]
-    member _.``AesIge must throw an exception if the key or IV length is incorrect.`` () =
+    member _.``AesIge must throw an exception if the key or IV length is incorrect.`` (): unit =
 
-        let validData = Array.zeroCreate 16
+        let validData: byte array = Array.zeroCreate 16
 
-        let invalidKey = Array.zeroCreate 15
+        let invalidKey: byte array = Array.zeroCreate 15
 
-        let validIv = Array.zeroCreate 32
+        let validIv: byte array = Array.zeroCreate 32
 
         // Check ArgumentException
 
         Assert.Throws<ArgumentException>(fun() ->
+
             AesIge.encrypt validData invalidKey validIv |> ignore
+        
         ) |> ignore
 
 
 type HashTests() =
 
     [<Fact>]
-    member _.``SHA-1 must return a correct 20-byte hash.`` () =
+    member _.``SHA-1 must return a correct 20-byte hash.`` (): unit =
 
-        let input = Encoding.UTF8.GetBytes("The quick brown fox jumps over the lazy dog")
+        let input: byte array = Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
 
-        let hash = Hash.sha1 input
+        let hash: byte array = Hash.sha1 input
 
 
         // Reference SHA-1 for this string in hex format
         let expectedHex = "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
 
 
-        let resultHex = Convert.ToHexString(hash).ToLower()
+        let resultHex: string = Convert.ToHexString(hash).ToLower()
 
         Assert.Equal(20, hash.Length)
 
         Assert.Equal(expectedHex, resultHex)
 
     [<Fact>]
-    member _.``SHA-256 must return a correct 32-byte hash.`` () =
+    member _.``SHA-256 must return a correct 32-byte hash.`` (): unit =
 
-        let input = Encoding.UTF8.GetBytes("The quick brown fox jumps over the lazy dog")
+        let input: byte array = Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
 
-        let hash = Hash.sha256 input
+        let hash: byte array = Hash.sha256 input
 
 
         // Reference SHA-256 for this string in hex format
-        let expectedHex = "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
+        let expectedHex: string = "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
 
 
-        let resultHex = Convert.ToHexString(hash).ToLower()
+        let resultHex: string = Convert.ToHexString(hash).ToLower()
 
         Assert.Equal(32, hash.Length)
 
@@ -134,52 +136,52 @@ type HashTests() =
 type PrimeTests() =
 
     [<Fact>]
-    member _.``bytesToBigInt and bigIntToBytes must correctly convert data without losing the sign.`` () =
+    member _.``bytesToBigInt and bigIntToBytes must correctly convert data without losing the sign.`` (): unit =
 
-        let originalBytes = [| 0x01uy; 0x02uy; 0x03uy; 0x04uy; 0x05uy |]
+        let originalBytes: byte array = [| 0x01uy; 0x02uy; 0x03uy; 0x04uy; 0x05uy |]
 
-        let bigInt = Prime.bytesToBigInt originalBytes
+        let bigInt: Numerics.BigInteger = Prime.bytesToBigInt originalBytes
 
-        let resultBytes = Prime.bigIntToBytes bigInt 5
+        let resultBytes: byte array = Prime.bigIntToBytes bigInt 5
 
         Assert.Equal<byte>(originalBytes, resultBytes)
 
     [<Fact>]
-    member _.``bigIntToBytes should add zero padding if the number is shorter than the specified length.`` () =
+    member _.``bigIntToBytes should add zero padding if the number is shorter than the specified length.`` (): unit =
 
-        let originalBytes = [| 0x05uy |]
+        let originalBytes: byte array = [| 0x05uy |]
 
-        let bigInt = Prime.bytesToBigInt originalBytes
+        let bigInt: Numerics.BigInteger = Prime.bytesToBigInt originalBytes
 
-        let resultBytes = Prime.bigIntToBytes bigInt 4
+        let resultBytes: byte array = Prime.bigIntToBytes bigInt 4
 
-        let expectedBytes = [| 0uy; 0uy; 0uy; 0x05uy |]
+        let expectedBytes: byte array = [| 0uy; 0uy; 0uy; 0x05uy |]
 
         Assert.Equal<byte>(expectedBytes, resultBytes)
 
     [<Fact>]
-    member _.``modPow must correctly calculate the remainder of a division involving a huge exponent.`` () =
+    member _.``modPow must correctly calculate the remainder of a division involving a huge exponent.`` (): unit =
 
-        let baseNum = System.Numerics.BigInteger(2)
+        let baseNum: Numerics.BigInteger = System.Numerics.BigInteger 2
 
-        let exponent = System.Numerics.BigInteger(5)
+        let exponent: Numerics.BigInteger = System.Numerics.BigInteger 5
 
-        let modulus = System.Numerics.BigInteger(13)
+        let modulus: Numerics.BigInteger = System.Numerics.BigInteger 13
 
-        let result = Prime.modPow baseNum exponent modulus
+        let result: Numerics.BigInteger = Prime.modPow baseNum exponent modulus
 
-        let expected = System.Numerics.BigInteger(6)
+        let expected: Numerics.BigInteger = System.Numerics.BigInteger 6
 
         Assert.Equal(expected, result)
 
     [<Fact>]
-    member _.``generateRandomBytes should generate an array of the correct length with random content.`` () =
+    member _.``generateRandomBytes should generate an array of the correct length with random content.`` (): unit =
 
-        let length = 64
+        let length: int = 64
 
-        let bytes1 = Prime.generateRandomBytes length
+        let bytes1: byte array = Prime.generateRandomBytes length
 
-        let bytes2 = Prime.generateRandomBytes length
+        let bytes2: byte array = Prime.generateRandomBytes length
 
         Assert.Equal(length, bytes1.Length)
 
@@ -191,17 +193,17 @@ type PrimeTests() =
 type TlReaderTests() =
 
     [<Fact>]
-    member _.``TlReader must successfully decode integers and long integers`` () =
+    member _.``TlReader must successfully decode integers and long integers`` (): unit =
         
-        use writer = new TlWriter()
+        use writer: TlWriter = new TlWriter()
 
         writer.WriteInt 1337
 
         writer.WriteLong 9876543210123L
 
-        let bytes = writer.ToBytes()
+        let bytes: byte array = writer.ToBytes()
 
-        use reader = new TlReader(bytes)
+        use reader: TlReader = new TlReader(bytes)
 
         Assert.Equal(1337, reader.ReadInt())
 
@@ -210,17 +212,17 @@ type TlReaderTests() =
         Assert.False(reader.HasMore())
     
     [<Fact>]
-    member _.``TlReader must correctly skip alignment padding when reading strings`` () =
+    member _.``TlReader must correctly skip alignment padding when reading strings`` (): unit =
 
-        use writer = new TlWriter()
+        use writer: TlWriter = new TlWriter()
 
         writer.WriteBytes "Bonjur!"
 
         writer.WriteBytes "F#"
 
-        let bytes = writer.ToBytes()
+        let bytes: byte array = writer.ToBytes()
 
-        use reader = new TlReader(bytes)
+        use reader: TlReader = new TlReader(bytes)
 
         Assert.Equal("Bonjur!", reader.ReadString())
 
@@ -229,19 +231,19 @@ type TlReaderTests() =
         Assert.False(reader.HasMore())
 
     [<Fact>]
-    member _.``TlReader and TlWriter must seamlessly handle large byte arrays`` () =
+    member _.``TlReader and TlWriter must seamlessly handle large byte arrays`` (): unit =
 
-        let originalData = Array.init 300 (fun i -> byte (i % 256))
+        let originalData: byte array = Array.init 300 (fun i -> byte (i % 256))
 
-        use writer = new TlWriter()
+        use writer: TlWriter = new TlWriter()
 
         writer.WriteBytes originalData // triggers overload for byte[]
 
-        let bytes = writer.ToBytes()
+        let bytes: byte array = writer.ToBytes()
 
-        use reader = new TlReader(bytes)
+        use reader: TlReader = new TlReader(bytes)
 
-        let resultData = reader.ReadBytes()
+        let resultData: byte array = reader.ReadBytes()
 
         Assert.Equal<byte>(originalData, resultData)
 
@@ -254,40 +256,40 @@ type TcpTransportTests() =
     /// <summary>
     ///  An additional method for launching a local test TCP server on a random available port.
     /// </summary>
-    let startLocalServer () =
+    let startLocalServer (): Net.Sockets.TcpListener * int =
         
-        let listener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
         
         listener.Start()
         
-        let port = (listener.LocalEndpoint :?> Net.IPEndPoint).Port
+        let port: int = (listener.LocalEndpoint :?> Net.IPEndPoint).Port
         
         listener, port
 
     [<Fact>]
-    member _.``TcpTransport must successfully connect and send the 0xEF initialization byte`` () =
+    member _.``TcpTransport must successfully connect and send the 0xEF initialization byte`` (): Task<unit> =
         task {
             
-            let listener, port = startLocalServer()
+            let (listener: Net.Sockets.TcpListener), port = startLocalServer()
             
-            let serverTask = task {
+            let serverTask: Task<byte * int> = task {
             
-                use! clientConnection = listener.AcceptTcpClientAsync()
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
             
-                use serverStream = clientConnection.GetStream()
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
             
-                let buffer = Array.zeroCreate 1
+                let buffer: byte array = Array.zeroCreate 1
             
-                let! readBytes = serverStream.ReadAsync(Memory<byte>(buffer))
+                let! readBytes = serverStream.ReadAsync(Memory<byte> buffer)
             
                 return buffer.[0], readBytes
             }
 
-            use transport = new TcpTransport()
+            use transport: TcpTransport = new TcpTransport()
             
             do! transport.ConnectAsync("127.0.0.1", port)
 
-            let! initByte, readCount = serverTask
+            let! (initByte: byte), readCount = serverTask
             
             listener.Stop()
 
@@ -298,26 +300,26 @@ type TcpTransportTests() =
         }
 
     [<Fact>]
-    member _.``TcpTransport must correctly encode and send short packets`` () =
+    member _.``TcpTransport must correctly encode and send short packets`` (): Task<unit> =
         task {
             
-            let listener, port = startLocalServer()
+            let (listener: Net.Sockets.TcpListener), port = startLocalServer()
             
-            let testPacket = Array.init 16 (fun i -> byte i)
+            let testPacket: byte array = Array.init 16 (fun i -> byte i)
 
-            let serverTask = task {
+            let serverTask: Task<byte array> = task {
             
-                use! clientConnection = listener.AcceptTcpClientAsync()
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
             
-                use serverStream = clientConnection.GetStream()
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
                 
-                let buffer = Array.zeroCreate 18
+                let buffer: byte array = Array.zeroCreate 18
             
-                let mutable totalRead = 0
+                let mutable totalRead: int = 0
             
                 while totalRead < 18 do
             
-                    let! read = serverStream.ReadAsync(Memory<byte>(buffer, totalRead, length = 18 - totalRead))
+                    let! read: int = serverStream.ReadAsync(Memory<byte>(buffer, totalRead, length = 18 - totalRead))
             
                     totalRead <- totalRead + read
             
@@ -325,13 +327,13 @@ type TcpTransportTests() =
             
             }
 
-            use transport = new TcpTransport()
+            use transport: TcpTransport = new TcpTransport()
             
             do! transport.ConnectAsync("127.0.0.1", port)
             
-            do! transport.SendPacketAsync(testPacket)
+            do! transport.SendPacketAsync testPacket
 
-            let! receivedBuffer = serverTask
+            let! receivedBuffer: byte array = serverTask
             
             listener.Stop()
 
@@ -341,37 +343,141 @@ type TcpTransportTests() =
         }
 
     [<Fact>]
-    member _.``TcpTransport must correctly receive incoming packets`` () =
+    member _.``TcpTransport must correctly receive incoming packets`` (): Task<unit> =
+        
         task {
-            let listener, port = startLocalServer()
+        
+            let (listener: Net.Sockets.TcpListener), (port: int) = startLocalServer()
             
-            let expectedData = [| 10uy; 20uy; 30uy; 40uy |] // 4 байта (1 слово)
+            let expectedData: byte array = [| 10uy; 20uy; 30uy; 40uy |]
 
-            let serverTask = task {
+            let serverTask: Task<unit> = task {
             
-                use! clientConnection = listener.AcceptTcpClientAsync()
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
             
-                use serverStream = clientConnection.GetStream()
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
                 
-                let initBuf = Array.zeroCreate 1
+                let initBuf: byte array = Array.zeroCreate 1
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
 
-                let response = [| 1uy; 10uy; 20uy; 30uy; 40uy |]
+                let response: byte array = [| 1uy; 10uy; 20uy; 30uy; 40uy |]
             
-                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(response))
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> response)
             
             }
 
-            use transport = new TcpTransport()
+            use transport: TcpTransport = new TcpTransport()
             
             do! transport.ConnectAsync("127.0.0.1", port)
             
-            let! _ = Task.WhenAny(serverTask, Task.Delay(1000))
+            let! _ = Task.WhenAny(serverTask, Task.Delay 1000)
 
-            let! receivedPacket = transport.ReceivePacketAsync()
+            let! receivedPacket: byte array = transport.ReceivePacketAsync()
             
             listener.Stop()
 
             Assert.Equal<byte>(expectedData, receivedPacket)
+        }
+
+
+type SessionTests() =
+
+    [<Fact>]
+    member _.``Session must generate a non-zero unique 64-bit identifier on initialization`` (): unit =
+        
+        let session: Session = new Session "test_init"
+        
+        Assert.NotEqual(0L, session.SessionId)
+
+    [<Fact>]
+    member _.``Session must successfully save and load authorization data from a binary file`` (): Task<unit> =
+        
+        task {
+        
+            let uniqueName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_session_%s" (Guid.NewGuid().ToString("N")))
+        
+            let fakeAuthKey: byte array = Array.init 256 (fun i -> byte (i % 256))
+        
+            let originalData: SessionData = {
+
+                AuthKey = fakeAuthKey
+
+                DcId = 2
+
+                Ip = "149.154.167.50"
+
+                Port = 443
+
+            }
+
+            let saveSession: Session = new Session(uniqueName)
+
+            saveSession.Data <- Some originalData
+            
+            Assert.True saveSession.IsAuthorized
+
+            do! saveSession.SaveToFileAsync()
+
+            let loadSession: Session = new Session(uniqueName)
+            
+            Assert.False loadSession.IsAuthorized
+
+            let! loadResult: bool = loadSession.LoadFromFileAsync()
+            
+            let expectedFilePath: string = sprintf "%s.zsession" uniqueName
+            
+            if IO.File.Exists expectedFilePath then IO.File.Delete expectedFilePath
+
+            Assert.True loadResult
+
+            Assert.True loadSession.IsAuthorized
+            
+            match loadSession.Data with
+
+            | Some (loadedData: SessionData) ->
+            
+                Assert.Equal(originalData.DcId, loadedData.DcId)
+            
+                Assert.Equal(originalData.Ip, loadedData.Ip)
+            
+                Assert.Equal(originalData.Port, loadedData.Port)
+            
+                Assert.Equal<byte>(originalData.AuthKey, loadedData.AuthKey)
+            
+            | None ->
+
+                Assert.Fail "Session data should not be None after successful load."
+        }
+
+    [<Fact>]
+    member _.``Session must return false and clear data when loading a non-existent file`` (): Task<unit> =
+        
+        task {
+        
+            let nonExistentName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_ghost_%s" (Guid.NewGuid().ToString("N")))
+            
+            let session: Session = new Session(nonExistentName)
+            
+
+            session.Data <- Some {
+
+                AuthKey = [| 1uy; 2uy |]
+
+                DcId = 1
+
+                Ip = "127.0.0.1"
+
+                Port = 80
+
+            }
+
+            let! loadResult: bool = session.LoadFromFileAsync()
+
+            Assert.False loadResult
+
+            Assert.False session.IsAuthorized
+
+            Assert.True session.Data.IsNone
+
         }
