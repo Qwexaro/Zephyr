@@ -1,9 +1,8 @@
 # Zephyr 🌪️
 
-[![Run Zephyr Tests](https://github.com)](https://github.com)
-![License](https://shields.io)
-![Version](https://shields.io)
-![.NET](https://shields.io)
+![License](https://github.com/Qwexaro/Zephyr/blob/main/LICENSE)
+<img src="https://img.shields.io/badge/version-0.2.0-white.svg" alt="Version 0.2.0"/>
+<img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10.0"/>
 
 ---
 
