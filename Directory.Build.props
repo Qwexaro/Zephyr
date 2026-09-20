@@ -1,11 +1,11 @@
 <Project>
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     
     <Authors>Kveks (Qwexaro)</Authors>
     <Company>Zephyr Open Source Project</Company>
     <Copyright>Copyright © 2026 Kveks (Qwexaro)</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    
+
   </PropertyGroup>
 </Project>
