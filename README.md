@@ -1,6 +1,5 @@
 # Zephyr 🌪️
 
-![License](https://github.com/Qwexaro/Zephyr/blob/main/LICENSE)
 <img src="https://img.shields.io/badge/version-0.2.0-white.svg" alt="Version 0.2.0"/>
 <img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10.0"/>
 
@@ -102,7 +101,7 @@ docker build -t zephyr-tests .
 
 ## 📜 Лицензия / License
 
-Проект распространяется на условиях свободной лицензии **GNU General Public License v3.0 (GPL-3.0)**. Вы можете свободно использовать, модифицировать и распространять этот код при сохранении копирайта и открытости исходного кода производных проектов. Подробности см. в файле [LICENSE](LICENSE).
+Проект распространяется на условиях свободной лицензии **GNU General Public License v3.0 (GPL-3.0)**. Вы можете свободно использовать, модифицировать и распространять этот код при сохранении копирайта и открытости исходного кода производных проектов. Подробности см. в файле [LICENSE](https://github.com/Qwexaro/Zephyr/blob/main/LICENSE).
 
 ---
 Copyright (C) 2026 Kveks (Qwexaro) <SergeyIvanovWork47@gmail.com>
