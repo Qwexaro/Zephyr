@@ -31,9 +31,8 @@
 - [x] **Zephyr.TL (API Schema):** Generating high-level TL classes, polymorphic types, and core requests (`Ping/Pong`).
 
 #### In Progress:
-
-- [ ] **Handshake Engine (Phase 1 Completed 1/3):** Implementation of the authorization key exchange (nonce validation set, PQ-factoring handler pending).
-- [ ] **MTProto Client:** High-level client coordinating socket states, incoming updates, and remote API procedure calls.
+- [ ] **Handshake Engine (Phases 1 & 2 Completed 2/3):** Authorization key exchange loop (Phase 1 & 2 fully operational with local unit testing, Phase 3 final DH exchange pending).
+- [ ] **MTProto Client:** High-level client coordinating socket states...
 
 ### 🛠️ Build & Testing
 You will need **.NET 10 SDK** installed.
@@ -79,8 +78,8 @@ docker build -t zephyr-tests .
 - [x] **Zephyr.TL (API Schema):** Телепортация высокоуровневых TL-классов, полиморфных типов и базовых запросов (`Ping/Pong`).
 
 ### В разработке:
-- [ ] **Handshake Engine (Фаза 1 готова — 1/3):** Реализация полной процедуры создания ключа авторизации (генерация nonce и прием resPQ готовы, впереди факторизация PQ и DH-обмен).
-- [ ] **MTProto Client:** Высокоуровневый клиент для управления подключениями, обновлениями (Updates) и вызовами методов API.
+- [ ] **Handshake Engine (Фазы 1 и 2 готовы — 2/3):** Реализация полной процедуры создания ключа авторизации (генерация nonce, факторизация PQ, сборка контейнеров и отправка req_DH_params полностью готовы, впереди финальный DH-обмен Фазы 3).
+- [ ] **MTProto Client:** Высокоуровневый клиент для управления подключениями...
 
 ## 🛠️ Сборка и тестирование
 

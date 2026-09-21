@@ -487,3 +487,98 @@ type HandshakeEngineTests() =
             
             listener.Stop()
         }
+
+    [<Fact>]
+    member _.``HandshakeEngine must successfully complete Phase 2 when server returns valid server_DH_params_ok`` (): Task<unit> =
+        
+        task {
+
+            let (listener: Net.Sockets.TcpListener), (port: int) = startLocalServer()
+
+            // Input data from Phase 1 that we pass to Phase 2
+            
+            let clientNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+            
+            let serverNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+            
+            let fakePq: byte array = [| 0x17uy; 0xEDuy; 0x48uy; 0x43uy; 0x4Euy; 0xAFuy; 0x74uy; 0xCBuy |] // From the Telegram specification
+            
+            let fakeFingerprints: int64 array = [| 1234567890L |]
+            
+            let resPqMock: Schema.ResPqResponse = new Schema.ResPqResponse(clientNonce, serverNonce, fakePq, fakeFingerprints)
+
+            // Emulating a Telegram server for Phase 2
+            
+            let serverTask: Task<unit> = task {
+                
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
+                
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
+                
+                // 1. Skip the initialization byte (0xEF)
+
+                let initBuf: byte array = Array.zeroCreate 1
+                
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
+
+                // 2. Read the packet length header and the req_DH_params packet itself.
+                
+                let headerBuf: byte array = Array.zeroCreate 1
+                
+                let! _ = serverStream.ReadAsync(Memory<byte> headerBuf)
+                
+                let packetLength: int = int headerBuf.[0] * 4
+                
+                let packetBuf: byte array = Array.zeroCreate packetLength
+                
+                let! _ = serverStream.ReadAsync(Memory<byte> packetBuf)
+
+                // 3. Generating the successful binary response server_DH_params_ok.
+
+                let fakeEncryptedAnswer: byte array = Array.init 64 (fun (i: int) -> byte i)
+                
+                use responseWriter: TlWriter = new TlWriter()
+
+                responseWriter.WriteInt -784117408 // server_DH_params_ok constructor ID
+                
+                responseWriter.WriteBytesFixed clientNonce
+                
+                responseWriter.WriteBytesFixed serverNonce
+                
+                responseWriter.WriteBytes fakeEncryptedAnswer
+                
+                let rawResponse: byte array = responseWriter.ToBytes()
+
+                // 4. Send the response back in Abridged format.
+            
+                let transportHeader: byte array = [| byte (rawResponse.Length / 4) |]
+
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> transportHeader)
+                
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> rawResponse)
+                
+                do! serverStream.FlushAsync()
+            
+            }
+
+            use transport: TcpTransport = new TcpTransport()
+
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let engine: HandshakeEngine = new HandshakeEngine(transport)
+
+            let! response: Schema.ServerDhParamsOkResponse = engine.ExecutePhase2Async resPqMock
+
+            let! _ = Task.WhenAny(serverTask, Task.Delay 2000)
+            
+            listener.Stop()
+
+            Assert.NotNull response
+
+            Assert.Equal<byte>(clientNonce, response.Nonce)
+
+            Assert.Equal<byte>(serverNonce, response.ServerNonce)
+
+            Assert.NotEmpty response.EncryptedAnswer
+
+        }
