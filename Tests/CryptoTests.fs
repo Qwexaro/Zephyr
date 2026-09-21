@@ -232,3 +232,40 @@ type PrimeTests() =
         // 2. We verify the fundamental property of factorization: p * q must be exactly equal to pq.
 
         Assert.Equal(pqOriginal, p * q)
+
+
+type RsaTests() =
+
+    [<Fact>]
+    member _.``encryptRaw must correctly encrypt data and pad result to exactly 256 bytes`` (): unit =
+        
+        // Simple mathematical parameters for the RSA test (small primes for demonstration)
+        // p = 61, q = 53 -> n = p * q = 3233. Exponent e = 17.
+        // Private exponent d = 2753 (for decryption: m = c^d % n)
+
+        let modulusBytes: byte array = [| 0x0Cuy; 0xA1uy |] // 3233 в Big Endian
+        
+        let exponentBytes: byte array = [| 0x11uy |]       // 17 в Big Endian
+        
+        let privateD: Numerics.BigInteger = System.Numerics.BigInteger 2753
+
+        // Test load (number 65)
+        
+        let originalData: byte array = [| 0x41uy |]
+
+        let encrypted: byte array = Rsa.encryptRaw originalData modulusBytes exponentBytes
+
+        Assert.Equal(256, encrypted.Length)
+
+        // We perform manual decoding to validate the math c^d % n
+        
+        let c: Numerics.BigInteger = Numerics.BigInteger(encrypted, isUnsigned = true, isBigEndian = true)
+        
+        let n: Numerics.BigInteger = Numerics.BigInteger(modulusBytes, isUnsigned = true, isBigEndian = true)
+        
+        let decryptedBigInt: Numerics.BigInteger = Numerics.BigInteger.ModPow(c, privateD, n)
+
+        let resultBytes: byte array = decryptedBigInt.ToByteArray(isUnsigned = true, isBigEndian = true)
+
+        // 3. We verify that the original byte 0x41 (65) has been successfully recovered.
+        Assert.Equal<byte>(originalData, resultBytes)
