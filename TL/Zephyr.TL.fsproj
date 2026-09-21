@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="TlWriter.fs" />
     <Compile Include="TlReader.fs" />
+    <Compile Include="Schema.fs" />
   </ItemGroup>
 
   <ItemGroup>

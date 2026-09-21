@@ -249,6 +249,31 @@ type TlReaderTests() =
 
         Assert.False(reader.HasMore())
 
+    
+    [<Fact>]
+    member _.``PingRequest must correctly serialize its constructor ID and long parameter`` (): unit =
+        
+        let request: Schema.PingRequest = new Schema.PingRequest 1L
+    
+        let tlObject: ITlObject = request :> ITlObject
+
+        use writer: TlWriter = new TlWriter()
+        
+        tlObject.Serialize writer
+        
+        let result: byte array = writer.ToBytes()
+
+        let expected: byte array = [| 
+        
+            0xecuy; 0x97uy; 0xbeuy; 0x7auy; 
+        
+            1uy; 0uy; 0uy; 0uy; 0uy; 0uy; 0uy; 0uy 
+        
+        |]
+
+        Assert.Equal(2059311084, tlObject.ConstructorId)
+        
+        Assert.Equal<byte>(expected, result)
 
 
 type TcpTransportTests() =
