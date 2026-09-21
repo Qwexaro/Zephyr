@@ -37,6 +37,77 @@ type TlWriterTests() =
         Assert.Equal<byte>(expected, result)
 
 
+    [<Fact>]
+    member _.``PqInnerDataDc must correctly serialize fixed blocks, int256 new_nonce, and datacenter ID`` (): unit =
+        
+        let fakePq: byte array = [| 0x12uy; 0x34uy |]
+        
+        let fakeP: byte array = [| 0x05uy |]
+        
+        let fakeQ: byte array = [| 0x07uy |]
+        
+        let fakeNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+        
+        let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+        
+        let fakeNewNonce: byte array = Array.init 32 (fun i -> byte (i + 20))
+        
+        let fakeDc: int = 2
+
+        let container: Schema.PqInnerDataDc = new Schema.PqInnerDataDc(fakePq, fakeP, fakeQ, fakeNonce, fakeServerNonce, fakeNewNonce, fakeDc)
+        
+        let tlObject: ITlObject = container :> ITlObject
+
+        use writer: TlWriter = new TlWriter()
+        
+        tlObject.Serialize writer
+        
+        let result: byte array = writer.ToBytes()
+
+        let expectedHeader: byte array = [| 0x95uy; 0x5fuy; 0xf5uy; 0xa9uy |]
+        
+        Assert.Equal(-1443537003, tlObject.ConstructorId)
+        
+        Assert.NotEmpty result
+        
+        Assert.Equal<byte>(expectedHeader, result.[0..3])
+
+    [<Fact>]
+    member _.``ReqDhParamsRequest must correctly serialize envelope headers and encrypted bytes payload`` (): unit =
+        
+        let fakeNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+        
+        let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+        
+        let fakeP: byte array = [| 0x0Auy |]
+        
+        let fakeQ: byte array = [| 0x0Buy |]
+        
+        let fakeFingerprint: int64 = 1234567890L
+        
+        let fakeEncrypted: byte array = Array.init 64 (fun i -> byte i)
+
+        let request: Schema.ReqDhParamsRequest = new Schema.ReqDhParamsRequest(fakeNonce, fakeServerNonce, fakeP, fakeQ, fakeFingerprint, fakeEncrypted)
+
+        let tlObject: ITlObject = request :> ITlObject
+
+        use writer: TlWriter = new TlWriter()
+
+        tlObject.Serialize writer
+
+        let result: byte array = writer.ToBytes()
+
+
+        let expectedHeader: byte array = [| 0xbeuy; 0xe4uy; 0x12uy; 0xd7uy |]
+
+        Assert.Equal(-686627650, tlObject.ConstructorId)
+
+        Assert.NotEmpty result
+
+        Assert.Equal<byte>(expectedHeader, result.[0..3])
+
+
+
 
 type TlReaderTests() =
 

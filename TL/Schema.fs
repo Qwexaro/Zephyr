@@ -57,6 +57,115 @@ module Schema =
 
 
     /// <summary>
+    /// The magic hexadecimal Constructor ID for the p_q_inner_data_dc constructor (0xa9f55f95).
+    /// </summary>
+    let [<Literal>] private PqInnerDataDcConstructorId: int = -1443537003 // 0xa9f55f95 in signed int32
+
+
+    /// <summary>
+    /// The magic hexadecimal Constructor ID for the req_DH_params method (0xd712e4be).
+    /// </summary>
+    let [<Literal>] private ReqDhParamsConstructorId: int = -686627650 // 0xd712e4be in signed int32
+
+
+    /// <summary>
+    /// Represents the inner data container to be encrypted via RSA during Phase 2 (p_q_inner_data_dc#a9f55f95).
+    /// </summary>
+    type PqInnerDataDc(pq: byte[], p: byte[], q: byte[], nonce: byte[], serverNonce: byte[], newNonce: byte[], dc: int) =
+        
+        do
+
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes (128 bits) long."
+        
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes (128 bits) long."
+            
+            if newNonce = null || newNonce.Length <> 32 then invalidArg "newNonce" "The newNonce must be exactly 32 bytes (256 bits) long."
+
+        
+        member _.Pq: byte array = pq
+
+        member _.P: byte array = p
+        
+        member _.Q: byte array = q
+        
+        member _.Nonce: byte array = nonce
+        
+        member _.ServerNonce: byte array = serverNonce
+        
+        member _.NewNonce: byte array = newNonce
+        
+        member _.Dc: int = dc
+
+        interface ITlObject with
+        
+            member _.ConstructorId: int = PqInnerDataDcConstructorId
+
+            member _.Serialize(writer: TlWriter): unit =
+        
+                writer.WriteInt PqInnerDataDcConstructorId
+        
+                writer.WriteBytes pq
+        
+                writer.WriteBytes p
+        
+                writer.WriteBytes q
+        
+                writer.WriteBytesFixed nonce
+        
+                writer.WriteBytesFixed serverNonce
+        
+                writer.WriteBytesFixed newNonce // Write int256 as fixed 32 bytes without headers
+        
+                writer.WriteInt dc
+
+
+
+    /// <summary>
+    /// Represents the public Phase 2 request wrapping the encrypted inner parameters (req_DH_params#d712e4be).
+    /// </summary>
+    type ReqDhParamsRequest(nonce: byte[], serverNonce: byte[], p: byte[], q: byte[], fingerprint: int64, encryptedData: byte[]) =
+        
+        do
+            
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+            
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+        
+        member _.Nonce: byte array = nonce
+
+        member _.ServerNonce: byte array = serverNonce
+        
+        member _.P: byte array = p
+        
+        member _.Q: byte array = q
+        
+        member _.PublicKeyFingerprint: int64 = fingerprint
+        
+        member _.EncryptedData: byte array = encryptedData
+
+        interface ITlObject with
+
+            member _.ConstructorId: int = ReqDhParamsConstructorId
+
+            member _.Serialize(writer: TlWriter): unit =
+
+                writer.WriteInt ReqDhParamsConstructorId
+
+                writer.WriteBytesFixed nonce
+
+                writer.WriteBytesFixed serverNonce
+
+                writer.WriteBytes p
+
+                writer.WriteBytes q
+
+                writer.WriteLong fingerprint
+
+                writer.WriteBytes encryptedData // The encrypted block is transmitted as a standard array of bytes
+
+
+    /// <summary>
     /// Represents the non-encrypted 'req_pq_multi' request (req_pq_multi#bece7170).
     /// </summary>
     type ReqPqMultiRequest(nonce: byte[]) =
