@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="TcpTransport.fs" />
     <Compile Include="Session.fs" />
+    <Compile Include="TcpTransport.fs" />
     <Compile Include="HandshakeEngine.fs" />
   </ItemGroup>
 

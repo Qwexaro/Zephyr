@@ -81,6 +81,18 @@ module Schema =
 
 
     /// <summary>
+    /// The magic hexadecimal Constructor ID for the server_DH_inner_data constructor (0xb589da1d).
+    /// </summary>
+    let [<Literal>] private ServerDhInnerDataConstructorId: int = -1249256931 // 0xb589da1d in signed int32
+
+
+    /// <summary>
+    /// The magic hexadecimal Constructor ID for the set_client_DH_params method (0xf5045f1f).
+    /// </summary>
+    let [<Literal>] private SetClientDhParamsConstructorId: int = -184262881 // 0xf5045f1f in signed int32
+
+
+    /// <summary>
     /// Represents the rejected Phase 2 response from the Telegram server (server_DH_params_fail#79cb045d).
     /// </summary>
     type ServerDhParamsFailResponse(nonce: byte[], serverNonce: byte[], newNonceHash: byte[]) =
@@ -444,3 +456,99 @@ module Schema =
             let pingId: int64 = reader.ReadLong()
         
             new PongResponse(msgId, pingId)
+
+    
+    /// <summary>
+    /// Represents the decrypted inner DH parameters returned by the Telegram server (server_DH_inner_data#b589da1d).
+    /// </summary>
+    type ServerDhInnerData(nonce: byte[], serverNonce: byte[], g: int, dhPrime: byte[], gA: byte[], serverTime: int) =
+        
+        do
+    
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+    
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+        member _.Nonce: byte array = nonce
+
+        member _.ServerNonce: byte array = serverNonce
+        
+        member _.G: int = g
+        
+        member _.DhPrime: byte array = dhPrime
+        
+        member _.GA: byte array = gA
+        
+        member _.ServerTime: int = serverTime
+
+        interface ITlObject with
+        
+            member _.ConstructorId: int = ServerDhInnerDataConstructorId
+        
+            member _.Serialize(writer: TlWriter): unit =
+        
+                writer.WriteInt ServerDhInnerDataConstructorId
+        
+                writer.WriteBytesFixed nonce
+        
+                writer.WriteBytesFixed serverNonce
+        
+                writer.WriteInt g
+        
+                writer.WriteBytes dhPrime
+        
+                writer.WriteBytes gA
+        
+                writer.WriteInt serverTime
+
+        /// <summary>
+        /// Deserializes a ServerDhInnerData object from the provided TlReader binary stream.
+        /// </summary>
+        static member Deserialize(reader: TlReader): ServerDhInnerData =
+
+            let nonce: byte array = reader.ReadBytesFixed 16
+        
+            let serverNonce: byte array = reader.ReadBytesFixed 16
+        
+            let g: int = reader.ReadInt()
+        
+            let dhPrime: byte array = reader.ReadBytes()
+        
+            let gA: byte array = reader.ReadBytes()
+        
+            let serverTime: int = reader.ReadInt()
+        
+            new ServerDhInnerData(nonce, serverNonce, g, dhPrime, gA, serverTime)
+
+    
+
+    /// <summary>
+    /// Represents the final Phase 3 request sending the client's public DH parameter to Telegram (set_client_DH_params#f5045f1f).
+    /// </summary>
+    type SetClientDhParamsRequest(nonce: byte[], serverNonce: byte[], gB: byte[]) =
+        
+        do
+            
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+            
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+        member _.Nonce: byte array = nonce
+        
+        member _.ServerNonce: byte array = serverNonce
+        
+        member _.GB: byte array = gB
+
+        interface ITlObject with
+        
+            member _.ConstructorId: int = SetClientDhParamsConstructorId
+        
+            member _.Serialize(writer: TlWriter): unit =
+        
+                writer.WriteInt SetClientDhParamsConstructorId
+        
+                writer.WriteBytesFixed nonce
+        
+                writer.WriteBytesFixed serverNonce
+        
+                writer.WriteBytes gB
