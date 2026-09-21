@@ -16,6 +16,7 @@ open Zephyr.TL
 open Zephyr.Core
 open System.Threading.Tasks
 open System.IO
+open Zephyr.Crypto
 
 type TcpTransportTests() =
 
@@ -582,3 +583,143 @@ type HandshakeEngineTests() =
             Assert.NotEmpty response.EncryptedAnswer
 
         }
+
+    [<Fact>]
+    member _.``HandshakeEngine must successfully complete Phase 3, decrypt payload, and calculate a valid 256-byte AuthKey`` (): Task<unit> =
+        
+        task {
+        
+            let (listener: Net.Sockets.TcpListener), port = startLocalServer()
+
+            // 1. Prepare reference nonces and parameters from previous phases
+
+            let clientNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+
+            let serverNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+            
+            let fakePq: byte array = [| 0x17uy; 0xEDuy; 0x48uy; 0x43uy; 0x4Euy; 0xAFuy; 0x74uy; 0xCBuy |]
+            
+            let fakeFingerprints: int64 array = [| 1234567890L |]
+            
+            let resPqMock: Schema.ResPqResponse = new Schema.ResPqResponse(clientNonce, serverNonce, fakePq, fakeFingerprints)
+
+            // Initialize the Diffie-Hellman constants (g = 3, p = 23, g^a % 23).
+            
+            let fakeG: int = 3
+            
+            let fakePrimeBytes: byte array = [| 23uy |] // dh_prime = 23
+            
+            let fakeGaBytes: byte array = [| 16uy |] // g^a % 23 = 16
+            
+            let fakeServerTime: int = 17171717
+
+            // We synchronize new_nonce with the coordinator to generate the correct AES key.
+            
+            let fakeNewNonce: byte array = Array.init 32 (fun i -> byte (i + 10))
+
+            // --- PRE-GENERATE ENCRYPTED PAYLOAD ON THE TEST SIDE TO AVOID TIMING RACE ---
+
+            use innerWriter: TlWriter = new TlWriter()
+            
+            innerWriter.WriteInt -1249256931 // server_DH_inner_data ID
+            
+            innerWriter.WriteBytesFixed clientNonce
+            
+            innerWriter.WriteBytesFixed serverNonce
+            
+            innerWriter.WriteInt fakeG
+            
+            innerWriter.WriteBytes fakePrimeBytes
+            
+            innerWriter.WriteBytes fakeGaBytes
+            
+            innerWriter.WriteInt fakeServerTime
+            
+            let innerBytes: byte array = innerWriter.ToBytes()
+
+            // We add the SHA-1 header and padding to align with the AES block size (multiples of 16 bytes).
+                
+            let sha1Hash: byte array = Hash.sha1 innerBytes
+                
+            let rawBlock: byte array = Array.concat [ sha1Hash; innerBytes ]
+                
+            let remainder: int = rawBlock.Length % 16
+                
+            let paddingLength: int = if remainder = 0 then 0 else 16 - remainder
+                
+            let aesBlock: byte array = Array.concat [ rawBlock; Array.zeroCreate paddingLength ]
+
+            // Calculate temporary AES key and IV for encrypting the response using IGE
+
+            let (tmpKey: byte array), (tmpIv: byte array) = Kdf.deriveHandshakeAesParams serverNonce fakeNewNonce
+                
+            let encryptedAnswer: byte array = AesIge.encrypt aesBlock tmpKey tmpIv
+
+            // Provide the mock with a REAL valid encrypted container so that TlReader won't starve
+            
+            let dhParamsOkMock: Schema.ServerDhParamsOkResponse = new Schema.ServerDhParamsOkResponse(clientNonce, serverNonce, encryptedAnswer)
+
+            // 2. Telegram background test server
+            
+            let serverTask: Task<unit> = task {
+            
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
+            
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
+                
+                // Skip the initialization byte (0xEF).
+            
+                let initBuf: byte array = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
+
+                // REVIEWING THE CLIENT'S FINAL RESPONSE (PHASE 3)
+                
+                let finalHeaderBuf: byte array = Array.zeroCreate 1
+                
+                let! _ = serverStream.ReadAsync(Memory<byte> finalHeaderBuf)
+                
+                let finalPacketLength: int = int finalHeaderBuf.[0] * 4
+                
+                let finalPacketBuf: byte array = Array.zeroCreate finalPacketLength
+                
+                let mutable totalRead: int = 0
+                
+                while totalRead < finalPacketLength do
+                    
+                    let! read: int = serverStream.ReadAsync(Memory<byte>(finalPacketBuf, totalRead, finalPacketLength - totalRead))
+                    
+                    totalRead <- totalRead + read
+                
+                Assert.NotEmpty finalPacketBuf
+            
+            }
+
+            // 3. Configuring the client
+
+            use transport: TcpTransport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let engine: HandshakeEngine = new HandshakeEngine(transport)
+
+            // Start the asynchronous execution of Phase 3
+
+            let phase3Task: Task<byte array> = engine.ExecutePhase3Async(resPqMock, dhParamsOkMock)
+            
+            let! authKey: byte array = phase3Task
+            
+            let! _ = Task.WhenAny(serverTask, Task.Delay 1000)
+
+            listener.Stop()
+
+            Assert.NotNull authKey
+            
+            Assert.Equal(256, authKey.Length)
+            
+            let hasData: bool = Array.exists (fun (b: byte) -> b <> 0uy) authKey
+            
+            Assert.True hasData
+
+        }
+

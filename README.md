@@ -30,8 +30,11 @@
 
 - [x] **Zephyr.TL (API Schema):** Generating high-level TL classes, polymorphic types, and core requests (`Ping/Pong`).
 
+- [x] **Binary TL Layer (v0.1.0):** High-performance `TlReader` and `TlWriter` with strict type annotations.
+- [x] **Network Transport (v0.2.0):** Custom asynchronous TCP Socket implementation via Abridged protocol.
+- [x] **Handshake Engine (v0.3.0):** Complete 3-phase MTProto Diffie-Hellman cryptographic key exchange (Generates secure 256-byte AuthKey).
+
 #### In Progress:
-- [ ] **Handshake Engine (Phases 1 & 2 Completed 2/3):** Authorization key exchange loop (Phase 1 & 2 fully operational with local unit testing, Phase 3 final DH exchange pending).
 - [ ] **MTProto Client:** High-level client coordinating socket states...
 
 ### 🛠️ Build & Testing
@@ -77,8 +80,10 @@ docker build -t zephyr-tests .
 
 - [x] **Zephyr.TL (API Schema):** Телепортация высокоуровневых TL-классов, полиморфных типов и базовых запросов (`Ping/Pong`).
 
+- [x] **Бинарный TL-слой (v0.1.0):** Высокопроизводительные `TlReader` и `TlWriter` со строгими аннотациями типов.
+- [x] **Сетевой транспорт (v0.2.0):** Кастомная асинхронная реализация TCP-сокетов поверх протокола Abridged.
+- [x] **Handshake Engine (v0.3.0):** Полная 3-фазная процедура криптографического обмена ключами Диффи-Хеллмана (генерация nonce, проверка PQ-факторизации и вычисление 256-байтового AuthKey).
 ### В разработке:
-- [ ] **Handshake Engine (Фазы 1 и 2 готовы — 2/3):** Реализация полной процедуры создания ключа авторизации (генерация nonce, факторизация PQ, сборка контейнеров и отправка req_DH_params полностью готовы, впереди финальный DH-обмен Фазы 3).
 - [ ] **MTProto Client:** Высокоуровневый клиент для управления подключениями...
 
 ## 🛠️ Сборка и тестирование
