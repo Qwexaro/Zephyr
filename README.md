@@ -32,7 +32,7 @@
 
 #### In Progress:
 
-- [ ] **Handshake Engine:** Implementation of the complete authorization key exchange (nonce generation, PQ factorization checks, AuthKey generation).
+- [ ] **Handshake Engine (Phase 1 Completed 1/3):** Implementation of the authorization key exchange (nonce validation set, PQ-factoring handler pending).
 - [ ] **MTProto Client:** High-level client coordinating socket states, incoming updates, and remote API procedure calls.
 
 ### 🛠️ Build & Testing
@@ -79,7 +79,7 @@ docker build -t zephyr-tests .
 - [x] **Zephyr.TL (API Schema):** Телепортация высокоуровневых TL-классов, полиморфных типов и базовых запросов (`Ping/Pong`).
 
 ### В разработке:
-- [ ] **Handshake Engine:** Реализация полной процедуры создания ключа авторизации (генерация nonce, проверка PQ-факторизации, создание AuthKey).
+- [ ] **Handshake Engine (Фаза 1 готова — 1/3):** Реализация полной процедуры создания ключа авторизации (генерация nonce и прием resPQ готовы, впереди факторизация PQ и DH-обмен).
 - [ ] **MTProto Client:** Высокоуровневый клиент для управления подключениями, обновлениями (Updates) и вызовами методов API.
 
 ## 🛠️ Сборка и тестирование
