@@ -10,6 +10,7 @@
     <Compile Include="AesIge.fs" />
     <Compile Include="Prime.fs" />
     <Compile Include="Rsa.fs" />
+    <Compile Include="Kdf.fs" />
   </ItemGroup>
 
 </Project>

@@ -269,3 +269,47 @@ type RsaTests() =
 
         // 3. We verify that the original byte 0x41 (65) has been successfully recovered.
         Assert.Equal<byte>(originalData, resultBytes)
+
+
+type KdfTests() =
+
+    [<Fact>]
+    member _.``deriveHandshakeAesParams must correctly compute exactly 32-byte key and IV primitives`` (): unit =
+    
+        // 1. We prepare the fixed input parameters (16-byte server_nonce and 32-byte new_nonce).
+        
+        let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+        
+        let fakeNewNonce: byte array = Array.init 32 (fun i -> byte (i + 10))
+
+        // 2. Initiating KDF parameter generation.
+
+        let tmpKey, tmpIv = Kdf.deriveHandshakeAesParams fakeServerNonce fakeNewNonce
+
+        // 3. We calculate the reference values ​​manually directly within the test to verify the slicing.
+        
+        let sha1A: byte array = Hash.sha1 (Array.concat [ fakeNewNonce; fakeServerNonce ])
+        
+        let sha1B: byte array = Hash.sha1 (Array.concat [ fakeServerNonce; fakeNewNonce ])
+        
+        let sha1C: byte array = Hash.sha1 (Array.concat [ fakeNewNonce; fakeNewNonce ])
+
+        // Assembling the expected key: the first 20 bytes from sha1A, the next 12 bytes from sha1B.
+        
+        let expectedKey: byte array = Array.concat [ sha1A; sha1B.[0..11] ]
+        
+        // Assembly of the expected IV: 8 bytes from sha1B, 20 bytes from sha1C, 4 bytes from new_nonce.
+        
+        let expectedIv: byte array = Array.concat [ sha1B.[12..19]; sha1C; fakeNewNonce.[0..3] ]
+
+        // 4. We verify strict size invariants (AES-256 IGE requires exactly 32 + 32 bytes).
+        
+        Assert.Equal(32, tmpKey.Length)
+        
+        Assert.Equal(32, tmpIv.Length)
+
+        // 5. Verifying the byte-level accuracy of the segmentation against the MTProto specification.
+        
+        Assert.Equal<byte>(expectedKey, tmpKey)
+        
+        Assert.Equal<byte>(expectedIv, tmpIv)
