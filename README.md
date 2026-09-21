@@ -28,8 +28,10 @@
 - [x] **Zephyr.Core (Network):** Asynchronous network socket transport (`TcpTransport`) supporting the *Abridged MTProto* protocol.
 - [x] **Zephyr.Core (Storage):** Secure binary session manager handling Auth Key, SessionId, and data center configurations (`.zsession`).
 
+- [x] **Zephyr.TL (API Schema):** Generating high-level TL classes, polymorphic types, and core requests (`Ping/Pong`).
+
 #### In Progress:
-- [ ] **Zephyr.TL (API Schema):** Generating high-level TL classes, polymorphic types, and core requests (`Ping/Pong`).
+
 - [ ] **Handshake Engine:** Implementation of the complete authorization key exchange (nonce generation, PQ factorization checks, AuthKey generation).
 - [ ] **MTProto Client:** High-level client coordinating socket states, incoming updates, and remote API procedure calls.
 
@@ -74,8 +76,9 @@ docker build -t zephyr-tests .
 - [x] **Zephyr.Core (Network):** Асинхронный сетевой транспорт сокетов (`TcpTransport`) с поддержкой протокола *Abridged MTProto*.
 - [x] **Zephyr.Core (Storage):** Менеджер безопасного бинарного хранения сессий, Auth Key и данных дата-центров (`.zsession`).
 
+- [x] **Zephyr.TL (API Schema):** Телепортация высокоуровневых TL-классов, полиморфных типов и базовых запросов (`Ping/Pong`).
+
 ### В разработке:
-- [ ] **Zephyr.TL (API Schema):** Телепортация высокоуровневых TL-классов, полиморфных типов и базовых запросов (`Ping/Pong`).
 - [ ] **Handshake Engine:** Реализация полной процедуры создания ключа авторизации (генерация nonce, проверка PQ-факторизации, создание AuthKey).
 - [ ] **MTProto Client:** Высокоуровневый клиент для управления подключениями, обновлениями (Updates) и вызовами методов API.
 
