@@ -80,6 +80,21 @@ type TlReader(bytes: byte[]) =
         Encoding.UTF8.GetString(bytes)
     
 
+    /// <summary>
+    /// Read a fixed number of raw bytes directly from the stream without parsing TL length headers.
+    /// Used for reading fixed crypto primitives like int128 (nonce) or int256.
+    /// </summary>
+    /// <param name="count">The exact number of bytes to extract.</param>
+    /// <returns>byte array</returns>
+    member _.ReadBytesFixed(count: int): byte array =
+    
+        if stream.Position + int64 count > stream.Length then invalidOp "Attempt to read fixed bytes beyond the end of the stream."
+        
+        let data: byte array = reader.ReadBytes(count)
+        
+        if data.Length <> count then raise (EndOfStreamException("Failed to read the exact number of fixed bytes from the stream."))
+        data
+
 
     interface IDisposable with
         

@@ -190,6 +190,33 @@ type PrimeTests() =
         Assert.NotEqual<byte>(bytes1, bytes2)
 
 
+
+type TlWriterTests() =
+
+    [<Fact>]
+    member _.``ReqPqMultiRequest must correctly serialize its constructor ID and raw 16-byte nonce`` (): unit =
+
+        let fakeNonce: byte array = Array.init 16 (fun i -> byte i)
+
+        let request: Schema.ReqPqMultiRequest = new Schema.ReqPqMultiRequest(fakeNonce)
+
+        let tlObject: ITlObject = request :> ITlObject
+
+        use writer: TlWriter = new TlWriter()
+
+        tlObject.Serialize writer
+
+        let result: byte array = writer.ToBytes()
+
+        let expected: byte array = Array.concat [ [| 0x70uy; 0x81uy; 0xceuy; 0xbeuy |]; fakeNonce ]
+
+        Assert.Equal(-1093762704, tlObject.ConstructorId)
+
+        Assert.Equal<byte>(expected, result)
+
+
+
+
 type TlReaderTests() =
 
     [<Fact>]
@@ -305,6 +332,46 @@ type TlReaderTests() =
         Assert.Equal(expectedPingId, response.PingId)
 
         Assert.False(reader.HasMore())
+
+    [<Fact>]
+    member _.``ResPqResponse must correctly serialize and deserialize vectors and fixed byte blocks`` (): unit =
+    
+        let nonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+    
+        let serverNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+    
+        let pq: byte array = [| 0x12uy; 0x34uy; 0x56uy |]
+    
+        let fingerprints: int64 array = [| 11111111L; 22222222L |]
+
+        let originalResponse: Schema.ResPqResponse = new Schema.ResPqResponse(nonce, serverNonce, pq, fingerprints)
+    
+        let tlObject: ITlObject = originalResponse :> ITlObject
+
+        use writer: TlWriter = new TlWriter()
+    
+        tlObject.Serialize writer
+    
+        let bytes: byte array = writer.ToBytes()
+
+        use reader: TlReader = new TlReader(bytes)
+    
+        let parsedConstructorId: int = reader.ReadInt()
+    
+        Assert.Equal(85337187, parsedConstructorId)
+
+        let deserialized: Schema.ResPqResponse = Schema.ResPqResponse.Deserialize reader
+
+        Assert.Equal<byte>(nonce, deserialized.Nonce)
+    
+        Assert.Equal<byte>(serverNonce, deserialized.ServerNonce)
+    
+        Assert.Equal<byte>(pq, deserialized.Pq)
+    
+        Assert.Equal<int64>(fingerprints, deserialized.Fingerprints)
+    
+        Assert.False(reader.HasMore())
+
 
 
 type TcpTransportTests() =

@@ -70,6 +70,14 @@ type TlWriter() =
 
         this.WriteBytes bytes
 
+    /// <summary>
+    /// Writes raw bytes directly to the stream without adding length headers or padding.
+    /// Used for fixed-size cryptographic primitives like int128 (nonces) or int256.
+    /// </summary>
+    /// <param name="bytes">The raw byte array to write.</param>
+    member _.WriteBytesFixed(bytes: byte[]) = writer.Write(bytes: byte[])
+
+
     
     interface IDisposable with
 
