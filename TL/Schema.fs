@@ -69,6 +69,113 @@ module Schema =
 
 
     /// <summary>
+    /// The magic hexadecimal Constructor ID for the server_DH_params_fail response (0x79cb045d).
+    /// </summary>
+    let [<Literal>] private ServerDhParamsFailConstructorId: int = 2043348061 // 0x79cb045d in signed int32
+
+
+    /// <summary>
+    /// The magic hexadecimal Constructor ID for the server_DH_params_ok response (0xd1435160).
+    /// </summary>
+    let [<Literal>] private ServerDhParamsOkConstructorId: int = -784117408 // 0xd1435160 in signed int32
+
+
+    /// <summary>
+    /// Represents the rejected Phase 2 response from the Telegram server (server_DH_params_fail#79cb045d).
+    /// </summary>
+    type ServerDhParamsFailResponse(nonce: byte[], serverNonce: byte[], newNonceHash: byte[]) =
+        
+        do
+
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+            if newNonceHash = null || newNonceHash.Length <> 16 then invalidArg "newNonceHash" "The newNonceHash must be exactly 16 bytes."
+
+        member _.Nonce: byte array = nonce
+
+        member _.ServerNonce: byte array = serverNonce
+
+        member _.NewNonceHash: byte array = newNonceHash
+
+        interface ITlObject with
+
+            member _.ConstructorId: int = ServerDhParamsFailConstructorId
+
+            member _.Serialize(writer: TlWriter): unit =
+
+                writer.WriteInt ServerDhParamsFailConstructorId
+
+                writer.WriteBytesFixed nonce
+
+                writer.WriteBytesFixed serverNonce
+
+                writer.WriteBytesFixed newNonceHash
+
+
+        /// <summary>
+        /// Deserializes a ServerDhParamsFailResponse object from the provided TlReader binary stream.
+        /// </summary>
+        static member Deserialize(reader: TlReader): ServerDhParamsFailResponse =
+
+            let nonce: byte array = reader.ReadBytesFixed 16
+
+            let serverNonce: byte array = reader.ReadBytesFixed 16
+
+            let newNonceHash: byte array = reader.ReadBytesFixed 16
+
+            new ServerDhParamsFailResponse(nonce, serverNonce, newNonceHash)
+
+
+
+    /// <summary>
+    /// Represents the successful Phase 2 response containing encrypted DH parameters (server_DH_params_ok#d1435160).
+    /// </summary>
+    type ServerDhParamsOkResponse(nonce: byte[], serverNonce: byte[], encryptedAnswer: byte[]) =
+        
+        do
+            
+            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+            
+            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+        member _.Nonce: byte array = nonce
+        
+        member _.ServerNonce: byte array = serverNonce
+        
+        member _.EncryptedAnswer: byte array = encryptedAnswer
+
+        interface ITlObject with
+            
+            member _.ConstructorId: int = ServerDhParamsOkConstructorId
+            
+            member _.Serialize(writer: TlWriter): unit =
+            
+                writer.WriteInt ServerDhParamsOkConstructorId
+            
+                writer.WriteBytesFixed nonce
+            
+                writer.WriteBytesFixed serverNonce
+            
+                writer.WriteBytes encryptedAnswer // Dynamic byte string with a length header
+
+        
+        /// <summary>
+        /// Deserializes a ServerDhParamsOkResponse object from the provided TlReader binary stream.
+        /// </summary>
+        static member Deserialize(reader: TlReader): ServerDhParamsOkResponse =
+            
+            let nonce: byte array = reader.ReadBytesFixed 16
+            
+            let serverNonce: byte array = reader.ReadBytesFixed 16
+            
+            let encryptedAnswer: byte array = reader.ReadBytes()
+
+            new ServerDhParamsOkResponse(nonce, serverNonce, encryptedAnswer)
+
+
+    /// <summary>
     /// Represents the inner data container to be encrypted via RSA during Phase 2 (p_q_inner_data_dc#a9f55f95).
     /// </summary>
     type PqInnerDataDc(pq: byte[], p: byte[], q: byte[], nonce: byte[], serverNonce: byte[], newNonce: byte[], dc: int) =

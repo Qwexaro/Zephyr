@@ -267,3 +267,78 @@ type TlReaderTests() =
         Assert.Equal<int64>(fingerprints, deserialized.Fingerprints)
     
         Assert.False(reader.HasMore())
+
+
+    [<Fact>]
+    member _.``ServerDhParamsFailResponse must correctly serialize and deserialize all fixed int128 blocks`` (): unit =
+        
+        let expectedNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
+        
+        let expectedServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
+        
+        let expectedNewNonceHash: byte array = Array.init 16 (fun i -> byte (i + 20))
+
+        use writer: TlWriter = new TlWriter()
+        
+        writer.WriteInt 2043348061 // server_DH_params_fail constructor ID
+        
+        writer.WriteBytesFixed expectedNonce
+        
+        writer.WriteBytesFixed expectedServerNonce
+        
+        writer.WriteBytesFixed expectedNewNonceHash
+        
+        let packet: byte array = writer.ToBytes()
+
+        use reader: TlReader = new TlReader(packet)
+        
+        let parsedId: int = reader.ReadInt()
+        
+        Assert.Equal(2043348061, parsedId)
+
+        let response: Schema.ServerDhParamsFailResponse = Schema.ServerDhParamsFailResponse.Deserialize reader
+
+        Assert.Equal<byte>(expectedNonce, response.Nonce)
+        
+        Assert.Equal<byte>(expectedServerNonce, response.ServerNonce)
+        
+        Assert.Equal<byte>(expectedNewNonceHash, response.NewNonceHash)
+        
+        Assert.False(reader.HasMore())
+
+    [<Fact>]
+    member _.``ServerDhParamsOkResponse must correctly deserialize dynamic bytes payload alongside fixed primitives`` (): unit =
+        
+        let expectedNonce: byte array = Array.init 16 (fun i -> byte (i + 5))
+        
+        let expectedServerNonce: byte array = Array.init 16 (fun i -> byte (i + 15))
+        
+        let expectedEncryptedAnswer: byte array = Array.init 128 (fun i -> byte (i % 256))
+
+        use writer: TlWriter = new TlWriter()
+        
+        writer.WriteInt -784117408 // server_DH_params_ok constructor ID
+        
+        writer.WriteBytesFixed expectedNonce
+        
+        writer.WriteBytesFixed expectedServerNonce
+        
+        writer.WriteBytes expectedEncryptedAnswer
+        
+        let packet: byte array = writer.ToBytes()
+
+        use reader: TlReader = new TlReader(packet)
+        
+        let parsedId: int = reader.ReadInt()
+        
+        Assert.Equal(-784117408, parsedId)
+
+        let response: Schema.ServerDhParamsOkResponse = Schema.ServerDhParamsOkResponse.Deserialize reader
+
+        Assert.Equal<byte>(expectedNonce, response.Nonce)
+
+        Assert.Equal<byte>(expectedServerNonce, response.ServerNonce)
+        
+        Assert.Equal<byte>(expectedEncryptedAnswer, response.EncryptedAnswer)
+        
+        Assert.False(reader.HasMore())
