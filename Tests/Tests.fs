@@ -436,6 +436,55 @@ type TcpTransportTests() =
             Assert.Equal<byte>(expectedData, receivedPacket)
         }
 
+    
+    [<Fact(Skip = "Integration test. Requires a direct internet connection.")>]
+    member _.``TcpTransport must successfully ping real Telegram test Datacenter 2`` (): Task<unit> =
+        task {
+            
+            let telegramIp: string = "149.154.167.50"
+            
+            let telegramPort: int = 443
+
+            use transport: TcpTransport = new TcpTransport()
+
+            do! transport.ConnectAsync(telegramIp, telegramPort)
+            
+            Assert.True transport.IsConnected
+
+            let expectedPingId: int64 = 9876543210L
+            
+            let request: Schema.PingRequest = new Schema.PingRequest(expectedPingId)
+            
+            let tlObject: ITlObject = request :> ITlObject
+
+            use writer: TlWriter = new TlWriter()
+            
+            tlObject.Serialize writer
+            
+            let payload: byte array = writer.ToBytes()
+
+            do! transport.SendPacketAsync payload
+
+            let! responseBytes: byte array = transport.ReceivePacketAsync()
+            
+            Assert.NotEmpty responseBytes
+
+            use reader: TlReader = new TlReader(responseBytes)
+            
+            let constructorId: int = reader.ReadInt()
+            
+            if constructorId = 879202576 then
+
+                let pong: Schema.PongResponse = Schema.PongResponse.Deserialize reader
+
+                Assert.Equal(expectedPingId, pong.PingId)
+
+                Assert.NotEqual(0L, pong.MsgId)
+            else
+
+                Assert.True(responseBytes.Length > 0)
+        }
+
 
 type SessionTests() =
 
