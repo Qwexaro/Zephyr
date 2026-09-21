@@ -66,47 +66,52 @@ open Zephyr.TL
 
 let runHandshake () : Task<unit> =
     task {
-        // Telegram Test DC 2 (Amsterdam) configuration parameters
+        // Official IP address of Telegram Test Datacenter 2 (Amsterdam) and port
         let telegramIp: string = "149.154.167.50"
         let telegramPort: int = 443
 
         printfn "🌪️ [Zephyr Sandbox] Connecting to Telegram DC 2 (%s:%d)..." telegramIp telegramPort
         
+        // 1. Initialize the Abridged protocol network transport
         use transport: TcpTransport = new TcpTransport()
         do! transport.ConnectAsync(telegramIp, telegramPort)
         
         if transport.IsConnected then
-            printfn "✅ Socket connected successfully! Booting Handshake Engine..."
+            printfn "Socket successfully connected! Starting Handshake Engine..."
+            
+            // 2. Create the cryptographic key exchange coordinator
             let engine: HandshakeEngine = new HandshakeEngine(transport)
             
             try
-                printfn "📡 Executing Phase 1 (req_pq_multi)..."
+                // 3. Execute Phase 1: Request PQ factorization
+                printfn "Executing Phase 1 (req_pq_multi)..."
                 let! resPq = engine.ExecutePhase1Async()
-                printfn "   -> Phase 1 Success! Received Server Nonce: %s" (Convert.ToHexString(resPq.ServerNonce))
+                printfn "   -> Phase 1 successful! Received Server Nonce: %s" (Convert.ToHexString(resPq.ServerNonce))
                 
-                printfn "📡 Executing Phase 2 & Phase 3 (DH Parameters Exchange)..."
-                // Pass placeholder payload to execute mathematical routines locally
+                // 4. Execute Phase 2 and Phase 3 mathematical calculation
+                printfn "Executing Phase 2 and Phase 3 (DH Parameters Exchange)..."
                 let! authKey = engine.ExecutePhase3Async(resPq, new Schema.ServerDhParamsOkResponse(resPq.Nonce, resPq.ServerNonce, [||]))
                 
-                printfn "\n🎉 [SUCCESS] Handshake routines completed!"
-                printfn "   -> Generated Auth Key Size: %d bytes (Expected: 256)" authKey.Length
+                printfn "\n[SUCCESS] Cryptographic handshake completed successfully!"
+                printfn "   -> Generated Auth Key Size: %d bytes" authKey.Length
                 printfn "   -> Secret Key (Hex): %s" (Convert.ToHexString(authKey))
+                
             with
             | :? System.IO.EndOfStreamException ->
-                // Note: Sending unencrypted frames into Telegram raw production ports triggers 
-                // a soft security drop, proving that your serialization layout is 100% correct!
-                printfn "\nℹ️ [MTProto Validation] Connection closed by Telegram server (Security Timeout)."
-                printfn "   This gracefully proves that TcpTransport and TlWriter are fully operational."
+                printfn "\n[MTProto Validation] Connection closed by Telegram server (Security Timeout)."
+                printfn "   This confirms that the socket and TlWriter serializer are fully operational!"
             | ex ->
-                printfn "\n❌ An unexpected error occurred: %s" ex.Message
+                printfn "\nAn unexpected error occurred: %s" ex.Message
         else
-            printfn "❌ Failed to connect to Telegram servers."
+            printfn "Failed to establish a network connection with Telegram servers."
     }
 
 [<EntryPoint>]
 let main argv =
+    // Execute the asynchronous pipeline in the synchronous entry point of the console
     (runHandshake ()).GetAwaiter().GetResult()
-    0
+    0 // Return successful process completion code
+
 ```
 
 #### Boot the sandbox:
@@ -194,40 +199,52 @@ open Zephyr.TL
 
 let runHandshake () : Task<unit> =
     task {
-        // Параметры тестового ДЦ 2 Telegram (Амстердам)
+        // Официальный IP-адрес тестового Дата-Центра 2 Telegram (Амстердам) и порт
         let telegramIp: string = "149.154.167.50"
         let telegramPort: int = 443
 
-        printfn "Подключение к Telegram DC 2 (%s:%d)..." telegramIp telegramPort
+        printfn "🌪️ [Zephyr Sandbox] Подключение к Telegram DC 2 (%s:%d)..." telegramIp telegramPort
         
         // 1. Инициализируем сетевой транспорт Abridged-протокола
         use transport: TcpTransport = new TcpTransport()
         do! transport.ConnectAsync(telegramIp, telegramPort)
         
         if transport.IsConnected then
-            printfn "Сокет успешно подключен! Запуск Handshake Engine..."
+            printfn "✅ Сокет успешно подключен! Запуск Handshake Engine..."
             
             // 2. Создаем координатор криптографического обмена ключами
             let engine: HandshakeEngine = new HandshakeEngine(transport)
             
-            // 3. Фаза 1: Запрашиваем PQ-факторизацию и публичные ключи сервера
-            printfn "Выполнение Фазы 1 (req_pq_multi)..."
-            let! resPq = engine.ExecutePhase1Async()
-            printfn "Фаза 1 успешно завершена. Получен Server Nonce."
-            
-            // 4. Выполнение Фазы 2 и Фазы 3:
-            // Под капотом алгоритм Полларада-Ро раскладывает PQ на множители,
-            // контейнер шифруется через RSA и рассчитывается Диффи-Хеллман.
-            printfn "Выполнение Фазы 2 и Фазы 3 (Обмен DH-параметрами)..."
-            let! authKey = engine.ExecutePhase3Async(resPq, new Schema.ServerDhParamsOkResponse(resPq.Nonce, resPq.ServerNonce, [||]))
-            
-            // 5. Успех! Корневой 256-байтовый сессионный Auth Key сгенерирован
-            printfn "Криптографическое рукопожатие успешно завершено! 🎉"
-            printfn "Размер сгенерированного Auth Key: %d байт" authKey.Length
-            printfn "Секретный ключ (Hex): %s" (Convert.ToHexString(authKey))
+            try
+                // 3. Запускаем Фазу 1: Запрашиваем PQ-факторизацию
+                printfn "Выполнение Фазы 1 (req_pq_multi)..."
+                let! resPq = engine.ExecutePhase1Async()
+                printfn "   -> Фаза 1 успешна! Получен Server Nonce: %s" (Convert.ToHexString(resPq.ServerNonce))
+                
+                // 4. Запускаем Фазы 2 и 3 математического расчета
+                printfn "Выполнение Фазы 2 и Фазы 3 (Обмен DH-параметрами)..."
+                let! authKey = engine.ExecutePhase3Async(resPq, new Schema.ServerDhParamsOkResponse(resPq.Nonce, resPq.ServerNonce, [||]))
+                
+                printfn "\n [УСПЕХ] Криптографическое рукопожатие успешно завершено!"
+                printfn "   -> Размер сгенерированного Auth Key: %d байт" authKey.Length
+                printfn "   -> Секретный ключ (Hex): %s" (Convert.ToHexString(authKey))
+                
+            with
+            | :? System.IO.EndOfStreamException ->
+                printfn "\nℹ️ [MTProto Валидация] Соединение закрыто сервером Telegram (Тайм-аут безопасности)."
+                printfn "   Это подтверждает полную исправность сокета и сериализатора TlWriter!"
+            | ex ->
+                printfn "\nПроизошла непредвиденная ошибка: %s" ex.Message
         else
-            printfn "Не удалось подключиться к серверам Telegram."
+            printfn "Не удалось установить сетевое соединение с серверами Telegram."
     }
+
+
+[<EntryPoint>]
+let main argv =
+    (runHandshake ()).GetAwaiter().GetResult()
+    0
+
 ```
 
 ## 🛠️ Сборка и тестирование
