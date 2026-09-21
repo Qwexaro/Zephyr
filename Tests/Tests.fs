@@ -275,6 +275,37 @@ type TlReaderTests() =
         
         Assert.Equal<byte>(expected, result)
 
+    [<Fact>]
+    member _.``PongResponse must correctly deserialize its fields from a binary stream`` (): unit =
+    
+        let expectedMsgId: int64 = 6543210987654321L
+    
+        let expectedPingId: int64 = 123456789012345L
+
+        use writer: TlWriter = new TlWriter()
+
+        writer.WriteInt 879202576 
+
+        writer.WriteLong expectedMsgId
+
+        writer.WriteLong expectedPingId
+        
+        let binaryPacket: byte array = writer.ToBytes()
+
+        use reader: TlReader = new TlReader(binaryPacket)
+        
+        let parsedConstructorId: int = reader.ReadInt()
+
+        Assert.Equal(879202576, parsedConstructorId)
+
+        let response: Schema.PongResponse = Schema.PongResponse.Deserialize reader
+
+        Assert.Equal(expectedMsgId, response.MsgId)
+
+        Assert.Equal(expectedPingId, response.PingId)
+
+        Assert.False(reader.HasMore())
+
 
 type TcpTransportTests() =
 

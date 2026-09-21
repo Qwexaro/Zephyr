@@ -37,6 +37,12 @@ module Schema =
     /// </summary>
     let [<Literal>] private PingConstructorId: int = 2059311084
 
+    
+    /// <summary>
+    /// The magic hexadecimal Constructor ID for the pong response (0x34771110).
+    /// </summary>
+    let [<Literal>] private PongConstructorId: int = 879202576
+
 
     /// <summary>
     /// Represents the core 'ping' request method (ping#7abe97ec).
@@ -60,3 +66,48 @@ module Schema =
                 writer.WriteInt PingConstructorId
             
                 writer.WriteLong pingId
+
+    
+    /// <summary>
+    /// Represents the core 'pong' response structure (pong#34771110).
+    /// </summary>
+    type PongResponse(msgId: int64, pingId: int64) =
+
+
+        /// <summary>
+        /// Gets the unique 64-bit message identifier assigned by the Telegram server.
+        /// </summary>
+        /// <returns>int64</returns>
+        member _.MsgId: int64 = msgId
+
+
+        /// <summary>
+        /// Gets the unique random 64-bit identifier matching the original ping request.
+        /// </summary>
+        /// <returns>int64</returns>
+        member _.PingId: int64 = pingId
+
+        interface ITlObject with
+            member _.ConstructorId: int = PongConstructorId
+
+            member _.Serialize(writer: TlWriter): unit =
+
+                writer.WriteInt PongConstructorId
+
+                writer.WriteLong msgId
+
+                writer.WriteLong pingId
+                
+
+        /// <summary>
+        /// Deserializes a PongResponse object from the provided TlReader binary stream.
+        /// </summary>
+        /// <param name="reader">The active TlReader stream.</param>
+        /// <returns>PongResponse</returns>
+        static member Deserialize(reader: TlReader): PongResponse =
+
+            let msgId: int64 = reader.ReadLong()
+        
+            let pingId: int64 = reader.ReadLong()
+        
+            new PongResponse(msgId, pingId)
