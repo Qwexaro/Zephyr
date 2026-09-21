@@ -1,0 +1,489 @@
+(*
+    Zephyr Telegram Client - Pyrogram rewrite in F#
+    Copyright (C) 2026  Kveks (Qwexaro) <SergeyIvanovWork47@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+*)
+
+namespace Zephyr.Tests
+
+open Xunit
+open System
+open Zephyr.TL
+open Zephyr.Core
+open System.Threading.Tasks
+open System.IO
+
+type TcpTransportTests() =
+
+    /// <summary>
+    ///  An additional method for launching a local test TCP server on a random available port.
+    /// </summary>
+    let startLocalServer (): Net.Sockets.TcpListener * int =
+        
+        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        
+        listener.Start()
+        
+        let port: int = (listener.LocalEndpoint :?> Net.IPEndPoint).Port
+        
+        listener, port
+
+
+    [<Fact>]
+    member _.``TcpTransport must successfully connect and send the 0xEF initialization byte`` (): Task<unit> =
+        
+        task {
+            
+            let (listener: Net.Sockets.TcpListener), port = startLocalServer()
+            
+            let serverTask: Task<byte * int> = task {
+            
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
+            
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
+            
+                let buffer: byte array = Array.zeroCreate 1
+            
+                let! readBytes = serverStream.ReadAsync(Memory<byte> buffer)
+            
+                return buffer.[0], readBytes
+            }
+
+            use transport: TcpTransport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+
+            let! (initByte: byte), readCount = serverTask
+            
+            listener.Stop()
+
+            Assert.Equal(1, readCount)
+            
+            Assert.Equal(0xEFuy, initByte)
+        
+        }
+
+
+    [<Fact>]
+    member _.``TcpTransport must correctly encode and send short packets`` (): Task<unit> =
+        
+        task {
+            
+            let (listener: Net.Sockets.TcpListener), port = startLocalServer()
+            
+            let testPacket: byte array = Array.init 16 (fun i -> byte i)
+
+            let serverTask: Task<byte array> = task {
+            
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
+            
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
+                
+                let buffer: byte array = Array.zeroCreate 18
+            
+                let mutable totalRead: int = 0
+            
+                while totalRead < 18 do
+            
+                    let! read: int = serverStream.ReadAsync(Memory<byte>(buffer, totalRead, length = 18 - totalRead))
+            
+                    totalRead <- totalRead + read
+            
+                return buffer
+            
+            }
+
+            use transport: TcpTransport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            do! transport.SendPacketAsync testPacket
+
+            let! receivedBuffer: byte array = serverTask
+            
+            listener.Stop()
+
+            Assert.Equal(4uy, receivedBuffer.[1])
+            
+            Assert.Equal<byte>(testPacket, receivedBuffer.[2..])
+
+        }
+
+    [<Fact>]
+    member _.``TcpTransport must correctly receive incoming packets`` (): Task<unit> =
+        
+        task {
+        
+            let (listener: Net.Sockets.TcpListener), (port: int) = startLocalServer()
+            
+            let expectedData: byte array = [| 10uy; 20uy; 30uy; 40uy |]
+
+            let serverTask: Task<unit> = task {
+            
+                use! clientConnection: Net.Sockets.TcpClient = listener.AcceptTcpClientAsync()
+            
+                use serverStream: Net.Sockets.NetworkStream = clientConnection.GetStream()
+                
+                let initBuf: byte array = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
+
+                let response: byte array = [| 1uy; 10uy; 20uy; 30uy; 40uy |]
+            
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> response)
+            
+            }
+
+            use transport: TcpTransport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let! _ = Task.WhenAny(serverTask, Task.Delay 1000)
+
+            let! receivedPacket: byte array = transport.ReceivePacketAsync()
+            
+            listener.Stop()
+
+            Assert.Equal<byte>(expectedData, receivedPacket)
+        }
+
+    
+    [<Fact(Skip = "Integration test. Requires a direct internet connection.")>]
+    member _.``TcpTransport must successfully ping real Telegram test Datacenter 2`` (): Task<unit> =
+        
+        task {
+            
+            let telegramIp: string = "149.154.167.50"
+            
+            let telegramPort: int = 443
+
+            use transport: TcpTransport = new TcpTransport()
+
+            do! transport.ConnectAsync(telegramIp, telegramPort)
+            
+            Assert.True transport.IsConnected
+
+            let expectedPingId: int64 = 9876543210L
+            
+            let request: Schema.PingRequest = new Schema.PingRequest(expectedPingId)
+            
+            let tlObject: ITlObject = request :> ITlObject
+
+            use writer: TlWriter = new TlWriter()
+            
+            tlObject.Serialize writer
+            
+            let payload: byte array = writer.ToBytes()
+
+            do! transport.SendPacketAsync payload
+
+            let! responseBytes: byte array = transport.ReceivePacketAsync()
+            
+            Assert.NotEmpty responseBytes
+
+            use reader: TlReader = new TlReader(responseBytes)
+            
+            let constructorId: int = reader.ReadInt()
+            
+            if constructorId = 879202576 then
+
+                let pong: Schema.PongResponse = Schema.PongResponse.Deserialize reader
+
+                Assert.Equal(expectedPingId, pong.PingId)
+
+                Assert.NotEqual(0L, pong.MsgId)
+            else
+
+                Assert.True(responseBytes.Length > 0)
+        
+        }
+
+
+type SessionTests() =
+
+    [<Fact>]
+    member _.``Session must generate a non-zero unique 64-bit identifier on initialization`` (): unit =
+        
+        let session: Session = new Session "test_init"
+        
+        Assert.NotEqual(0L, session.SessionId)
+
+    
+    [<Fact>]
+    member _.``Session must successfully save and load authorization data from a binary file`` (): Task<unit> =
+        
+        task {
+        
+            let uniqueName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_session_%s" (Guid.NewGuid().ToString("N")))
+        
+            let fakeAuthKey: byte array = Array.init 256 (fun i -> byte (i % 256))
+        
+            let originalData: SessionData = {
+
+                AuthKey = fakeAuthKey
+
+                DcId = 2
+
+                Ip = "149.154.167.50"
+
+                Port = 443
+
+            }
+
+            let saveSession: Session = new Session(uniqueName)
+
+            saveSession.Data <- Some originalData
+            
+            Assert.True saveSession.IsAuthorized
+
+            do! saveSession.SaveToFileAsync()
+
+            let loadSession: Session = new Session(uniqueName)
+            
+            Assert.False loadSession.IsAuthorized
+
+            let! loadResult: bool = loadSession.LoadFromFileAsync()
+            
+            let expectedFilePath: string = sprintf "%s.zsession" uniqueName
+            
+            if IO.File.Exists expectedFilePath then IO.File.Delete expectedFilePath
+
+            Assert.True loadResult
+
+            Assert.True loadSession.IsAuthorized
+            
+            match loadSession.Data with
+
+            | Some (loadedData: SessionData) ->
+            
+                Assert.Equal(originalData.DcId, loadedData.DcId)
+            
+                Assert.Equal(originalData.Ip, loadedData.Ip)
+            
+                Assert.Equal(originalData.Port, loadedData.Port)
+            
+                Assert.Equal<byte>(originalData.AuthKey, loadedData.AuthKey)
+            
+            | None ->
+
+                Assert.Fail "Session data should not be None after successful load."
+        
+        }
+
+    [<Fact>]
+    member _.``Session must return false and clear data when loading a non-existent file`` (): Task<unit> =
+        
+        task {
+        
+            let nonExistentName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_ghost_%s" (Guid.NewGuid().ToString("N")))
+            
+            let session: Session = new Session(nonExistentName)
+            
+
+            session.Data <- Some {
+
+                AuthKey = [| 1uy; 2uy |]
+
+                DcId = 1
+
+                Ip = "127.0.0.1"
+
+                Port = 80
+
+            }
+
+            let! loadResult: bool = session.LoadFromFileAsync()
+
+            Assert.False loadResult
+
+            Assert.False session.IsAuthorized
+
+            Assert.True session.Data.IsNone
+
+        }
+
+type HandshakeEngineTests() =
+
+    let startLocalServer (): Net.Sockets.TcpListener * int =
+
+        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+
+        listener.Start()
+
+        let port: int = (listener.LocalEndpoint :?> Net.IPEndPoint).Port
+
+        listener, port
+
+    [<Fact>]
+    member _.``HandshakeEngine must successfully complete Phase 1 when server returns valid resPQ`` (): Task<unit> =
+        
+        task {
+        
+            let listener, port = startLocalServer()
+
+            let serverTask: Task<unit> = task {
+            
+                use! clientConnection = listener.AcceptTcpClientAsync()
+            
+                use serverStream = clientConnection.GetStream()
+                
+                let initBuf = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+
+                let headerBuf = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(headerBuf))
+            
+                let packetLength = int headerBuf.[0] * 4
+                
+                let packetBuf = Array.zeroCreate packetLength
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(packetBuf))
+
+                use requestReader = new TlReader(packetBuf)
+            
+                let _ = requestReader.ReadInt() // Пропускаем Constructor ID запроса
+            
+                let clientNonce = requestReader.ReadBytesFixed 16
+
+                let fakeServerNonce = Array.init 16 (fun i -> byte (i + 50))
+            
+                let fakePq = [| 0x17uy; 0x23uy; 0x45uy |]
+            
+                let fakeFingerprints = [| 999888777L |]
+                
+                use responseWriter = new TlWriter()
+            
+                responseWriter.WriteInt 85337187 // resPQ constructor ID
+            
+                responseWriter.WriteBytesFixed clientNonce // Возвращаем родной nonce клиента
+            
+                responseWriter.WriteBytesFixed fakeServerNonce
+            
+                responseWriter.WriteBytes fakePq
+            
+                responseWriter.WriteInt 481673237 // Vector ID
+            
+                responseWriter.WriteInt fakeFingerprints.Length
+            
+                for fp in fakeFingerprints do responseWriter.WriteLong fp
+                
+                let rawResponse = responseWriter.ToBytes()
+
+                let responseLengthInWords = rawResponse.Length / 4
+            
+                let transportHeader = [| byte responseLengthInWords |]
+                
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(transportHeader))
+            
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(rawResponse))
+            
+                do! serverStream.FlushAsync()
+            }
+
+            use transport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let engine = new HandshakeEngine(transport)
+
+            let! response = engine.ExecutePhase1Async()
+            
+            let! _ = Task.WhenAny(serverTask, Task.Delay(2000))
+            
+            listener.Stop()
+
+            Assert.NotNull response
+            
+            Assert.Equal<byte>([| 0x17uy; 0x23uy; 0x45uy |], response.Pq)
+            
+            Assert.Equal<int64>([| 999888777L |], response.Fingerprints)
+        
+        }
+
+    [<Fact>]
+    member _.``HandshakeEngine must throw InvalidDataException if server returns a mismatched nonce`` (): Task<unit> =
+        
+        task {
+
+            let listener, port = startLocalServer()
+
+            /// <summary>
+            /// A background server that attempts to deceive the client and substitute a nonce belonging to another party.
+            /// </summary>
+            let serverTask: Task<unit> = task {
+            
+                use! clientConnection = listener.AcceptTcpClientAsync()
+            
+                use serverStream = clientConnection.GetStream()
+                
+                let initBuf = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+
+                let headerBuf = Array.zeroCreate 1
+            
+                let! _ = serverStream.ReadAsync(Memory<byte>(headerBuf))
+            
+                let packetLength = int headerBuf.[0] * 4
+
+                let dummyBuf = Array.zeroCreate packetLength
+            
+                let mutable bytesRead = 0
+            
+                while bytesRead < packetLength do
+            
+                    let! read = serverStream.ReadAsync(Memory<byte>(dummyBuf, bytesRead, packetLength - bytesRead))
+            
+                    bytesRead <- bytesRead + read
+
+                let corruptedNonce: byte array = Array.init 16 (fun i -> byte (i + 99))
+            
+                let fakeServerNonce: byte array = Array.init 16 (fun _ -> 0uy)
+                
+                use responseWriter = new TlWriter()
+            
+                responseWriter.WriteInt 85337187
+            
+                responseWriter.WriteBytesFixed corruptedNonce // The Swap
+            
+                responseWriter.WriteBytesFixed fakeServerNonce
+            
+                responseWriter.WriteBytes [| 0uy |]
+            
+                responseWriter.WriteInt 481673237
+            
+                responseWriter.WriteInt 0
+                
+                let rawResponse = responseWriter.ToBytes()
+            
+                let transportHeader = [| byte (rawResponse.Length / 4) |]
+                
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(transportHeader))
+            
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(rawResponse))
+            
+                do! serverStream.FlushAsync()
+            }
+
+            use transport = new TcpTransport()
+            
+            do! transport.ConnectAsync("127.0.0.1", port)
+            
+            let engine = new HandshakeEngine(transport)
+
+            let! _ = Assert.ThrowsAsync<InvalidDataException>(fun () -> 
+            
+                engine.ExecutePhase1Async() :> Task
+            
+            )
+
+            let! _ = Task.WhenAny(serverTask, Task.Delay(1000))
+            
+            listener.Stop()
+        }

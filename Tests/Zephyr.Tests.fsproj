@@ -6,7 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Tests.fs" />
+    <Compile Include="CryptoTests.fs" />
+    <Compile Include="TlTests.fs" />
+    <Compile Include="NetworkTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
