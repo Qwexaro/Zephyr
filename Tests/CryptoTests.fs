@@ -186,3 +186,49 @@ type PrimeTests() =
         Assert.Equal(length, bytes2.Length)
 
         Assert.NotEqual<byte>(bytes1, bytes2)
+
+    
+    [<Fact>]
+    member _.``factorPQ must correctly factor small composite numbers and enforce p less than q`` (): unit =
+        // 13 * 17 = 221. In bytes, this is [| 0xDDuy |].
+        
+        let pqBytes: byte array = [| 0xDDuy |]
+        
+        let pBytes, qBytes = Prime.factorPQ pqBytes
+        
+        // Convert back to numbers for easy verification
+        
+        let p: Numerics.BigInteger = Prime.bytesToBigInt pBytes
+
+        let q: Numerics.BigInteger = Prime.bytesToBigInt qBytes
+        
+        Assert.Equal(Numerics.BigInteger 13, p)
+        
+        Assert.Equal(Numerics.BigInteger 17, q)
+        
+        Assert.True(p < q) // The most important rule of MTProto: p < q
+
+    [<Fact>]
+    member _.``factorPQ must successfully factor real 64-bit Telegram composite numbers from MTProto spec`` (): unit =
+        
+        // The actual pq number from the Telegram documentation examples: 0x17ED48434EAF74CB
+        
+        let pqBytes: byte array = [| 0x17uy; 0xEDuy; 0x48uy; 0x43uy; 0x4Euy; 0xAFuy; 0x74uy; 0xCBuy |]
+        
+        let pBytes, qBytes = Prime.factorPQ pqBytes
+        
+        // Reconstructing a BigInteger from big-endian responses for mathematical verification.
+        
+        let p: Numerics.BigInteger = Numerics.BigInteger(pBytes, isUnsigned = true, isBigEndian = true)
+        
+        let q: Numerics.BigInteger = Numerics.BigInteger(qBytes, isUnsigned = true, isBigEndian = true)
+        
+        let pqOriginal: Numerics.BigInteger = Numerics.BigInteger(pqBytes, isUnsigned = true, isBigEndian = true)
+
+        // 1. Check the crucial MTProto rule: p must be less than q.
+        
+        Assert.True(p < q)
+        
+        // 2. We verify the fundamental property of factorization: p * q must be exactly equal to pq.
+
+        Assert.Equal(pqOriginal, p * q)
