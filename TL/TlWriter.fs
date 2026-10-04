@@ -24,18 +24,18 @@ type TlWriter() =
     /// <summary> Get the final compiled byte array of the packet</summary>
     member _.ToBytes() = stream.ToArray()
 
-    
-    /// <summary> Write a 32-bit integer (Little Endian) </summary>
-    member _.WriteInt(value: int) = writer.Write(value)
 
-    
+    /// <summary> Write a 32-bit integer (Little Endian) </summary>
+    member _.WriteInt(value: int) = writer.Write value
+
+
     /// <summary> Write a 64-bit integer (Little Endian) </summary>
-    member _.WriteLong(value: int64) = writer.Write(value)
+    member _.WriteLong(value: int64) = writer.Write value
 
 
     ///<summary> Write a byte array according to Telegram's rules (taking 4-byte alignment into account) </summary>
-    member _.WriteBytes(bytes: byte[]) = 
-        
+    member _.WriteBytes(bytes: byte[]) =
+
         let length = bytes.Length
 
         if length < 254 then
@@ -45,11 +45,12 @@ type TlWriter() =
 
             let padding = (1 + length) % 4
 
-            if padding <> 0 then writer.Write(Array.zeroCreate (4 - padding): byte[])
+            if padding <> 0 then
+                writer.Write(Array.zeroCreate (4 - padding): byte[])
 
         else
 
-            writer.Write(254uy)
+            writer.Write 254uy
 
             writer.Write(byte (length &&& 0xFF))
 
@@ -61,12 +62,13 @@ type TlWriter() =
 
             let padding = (4 + length) % 4
 
-            if padding <> 0 then writer.Write(Array.zeroCreate (4 - padding): byte[])
+            if padding <> 0 then
+                writer.Write(Array.zeroCreate (4 - padding): byte[])
 
     ///<summary> Converts the string into UTF-8 bytes and writes it using Telegram rules </summary>
-    member this.WriteBytes(value: string) = 
+    member this.WriteBytes(value: string) =
 
-        let bytes = Encoding.UTF8.GetBytes(value)
+        let bytes = Encoding.UTF8.GetBytes value
 
         this.WriteBytes bytes
 
@@ -78,13 +80,12 @@ type TlWriter() =
     member _.WriteBytesFixed(bytes: byte[]) = writer.Write(bytes: byte[])
 
 
-    
+
     interface IDisposable with
 
         ///<summary> Flushes and closes the underlying BinaryWriter and MemoryStream immediately </summary>
-        member _.Dispose () =
-            
+        member _.Dispose() =
+
             writer.Dispose()
 
             stream.Dispose()
-

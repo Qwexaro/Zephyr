@@ -30,9 +30,10 @@ type TlReader(bytes: byte[]) =
     member _.ReadLong() = reader.ReadInt64()
 
     /// Read a byte array according to Telegram's rules (taking 4-byte alignment into account).
-    member _.ReadBytes() = 
+    member _.ReadBytes() =
 
-        if stream.Position >= stream.Length then invalidOp "Attempt to read beyond the stream"
+        if stream.Position >= stream.Length then
+            invalidOp "Attempt to read beyond the stream"
 
         let firstByte = reader.ReadByte()
 
@@ -46,7 +47,8 @@ type TlReader(bytes: byte[]) =
 
             padding <- (1 + length) % 4
 
-            if padding <> 0 then padding <- 4 - padding
+            if padding <> 0 then
+                padding <- 4 - padding
 
         else
 
@@ -60,25 +62,28 @@ type TlReader(bytes: byte[]) =
 
             padding <- (4 + length) % 4
 
-            if padding <> 0 then padding <- 4 - padding
+            if padding <> 0 then
+                padding <- 4 - padding
 
-        let data = reader.ReadBytes(length)
+        let data = reader.ReadBytes length
 
-        if data.Length <> length then raise(EndOfStreamException("Failed to read the stated number of bytes!"))
+        if data.Length <> length then
+            raise (EndOfStreamException "Failed to read the stated number of bytes!")
 
-        if padding > 0 then stream.Seek(int64 padding, SeekOrigin.Current) |> ignore
+        if padding > 0 then
+            stream.Seek(int64 padding, SeekOrigin.Current) |> ignore
 
         data
 
     /// <summary>
     ///  converts the read TL bytes into UTF-8 text
     /// </summary>
-    member this.ReadString() = 
+    member this.ReadString() =
 
         let bytes = this.ReadBytes()
 
-        Encoding.UTF8.GetString(bytes)
-    
+        Encoding.UTF8.GetString bytes
+
 
     /// <summary>
     /// Read a fixed number of raw bytes directly from the stream without parsing TL length headers.
@@ -86,26 +91,28 @@ type TlReader(bytes: byte[]) =
     /// </summary>
     /// <param name="count">The exact number of bytes to extract.</param>
     /// <returns>byte array</returns>
-    member _.ReadBytesFixed(count: int): byte array =
-    
-        if stream.Position + int64 count > stream.Length then invalidOp "Attempt to read fixed bytes beyond the end of the stream."
-        
-        let data: byte array = reader.ReadBytes(count)
-        
-        if data.Length <> count then raise (EndOfStreamException("Failed to read the exact number of fixed bytes from the stream."))
+    member _.ReadBytesFixed(count: int) : byte array =
+
+        if stream.Position + int64 count > stream.Length then
+            invalidOp "Attempt to read fixed bytes beyond the end of the stream."
+
+        let data: byte array = reader.ReadBytes count
+
+        if data.Length <> count then
+            raise (EndOfStreamException "Failed to read the exact number of fixed bytes from the stream.")
+
         data
 
 
     interface IDisposable with
-        
+
         /// <summary>
-        /// Implementing the IDisposable interface ensures that we can immediately 
-        /// close the MemoryStream and BinaryReader 
+        /// Implementing the IDisposable interface ensures that we can immediately
+        /// close the MemoryStream and BinaryReader
         /// as soon as they have completed their task.
         /// </summary>
-        member _.Dispose () = 
+        member _.Dispose() =
 
             reader.Dispose()
 
             stream.Dispose()
-

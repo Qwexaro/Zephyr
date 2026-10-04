@@ -19,11 +19,11 @@ open Zephyr.Crypto
 type CryptoTests() =
 
     [<Fact>]
-    member _.``AesIge must successfully encrypt and decrypt a text character.`` (): unit =
-        
+    member _.``AesIge must successfully encrypt and decrypt a text character.``() : unit =
+
         let originalText: string = "Bonjur MTProto F# telegram Client!"
 
-        let rawBytes: byte array = Encoding.UTF8.GetBytes(originalText)
+        let rawBytes: byte array = Encoding.UTF8.GetBytes originalText
 
         let blockSize: int = 16
 
@@ -31,11 +31,12 @@ type CryptoTests() =
 
         let paddingLength: int = if remainder = 0 then 0 else blockSize - remainder
 
-        let paddedData: byte array = Array.concat [ rawBytes; Array.zeroCreate paddingLength ]
+        let paddedData: byte array =
+            Array.concat [ rawBytes; Array.zeroCreate paddingLength ]
 
-        let fakeKey: byte array = Array.init 32 (fun i-> byte(i * 3))
+        let fakeKey: byte array = Array.init 32 (fun i -> byte (i * 3))
 
-        let fakeIv: byte array = Array.init 32 (fun i -> byte(i + 5))
+        let fakeIv: byte array = Array.init 32 (fun i -> byte (i + 5))
 
         let encrypted: byte array = AesIge.encrypt paddedData fakeKey fakeIv
 
@@ -45,13 +46,13 @@ type CryptoTests() =
 
         let decrypted: byte array = AesIge.decrypt encrypted fakeKey fakeIv
 
-        let resultText: string = Encoding.UTF8.GetString(decrypted).TrimEnd('\000')
+        let resultText: string = Encoding.UTF8.GetString(decrypted).TrimEnd '\000'
 
         Assert.Equal(originalText, resultText)
 
     [<Fact>]
-    member _.``AesIge must work correctly with long, random binary blocks.`` (): unit =
-        
+    member _.``AesIge must work correctly with long, random binary blocks.``() : unit =
+
         let dataLength: int = 1024
 
         let randomData: byte array = Array.zeroCreate dataLength
@@ -75,7 +76,7 @@ type CryptoTests() =
         Assert.Equal<byte>(randomData, decrypted)
 
     [<Fact>]
-    member _.``AesIge must throw an exception if the key or IV length is incorrect.`` (): unit =
+    member _.``AesIge must throw an exception if the key or IV length is incorrect.``() : unit =
 
         let validData: byte array = Array.zeroCreate 16
 
@@ -85,19 +86,21 @@ type CryptoTests() =
 
         // Check ArgumentException
 
-        Assert.Throws<ArgumentException>(fun() ->
+        Assert.Throws<ArgumentException>(fun () ->
 
             AesIge.encrypt validData invalidKey validIv |> ignore
-        
-        ) |> ignore
+
+        )
+        |> ignore
 
 
 type HashTests() =
 
     [<Fact>]
-    member _.``SHA-1 must return a correct 20-byte hash.`` (): unit =
+    member _.``SHA-1 must return a correct 20-byte hash.``() : unit =
 
-        let input: byte array = Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
+        let input: byte array =
+            Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
 
         let hash: byte array = Hash.sha1 input
 
@@ -113,15 +116,17 @@ type HashTests() =
         Assert.Equal(expectedHex, resultHex)
 
     [<Fact>]
-    member _.``SHA-256 must return a correct 32-byte hash.`` (): unit =
+    member _.``SHA-256 must return a correct 32-byte hash.``() : unit =
 
-        let input: byte array = Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
+        let input: byte array =
+            Encoding.UTF8.GetBytes "The quick brown fox jumps over the lazy dog"
 
         let hash: byte array = Hash.sha256 input
 
 
         // Reference SHA-256 for this string in hex format
-        let expectedHex: string = "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
+        let expectedHex: string =
+            "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
 
 
         let resultHex: string = Convert.ToHexString(hash).ToLower()
@@ -134,7 +139,7 @@ type HashTests() =
 type PrimeTests() =
 
     [<Fact>]
-    member _.``bytesToBigInt and bigIntToBytes must correctly convert data without losing the sign.`` (): unit =
+    member _.``bytesToBigInt and bigIntToBytes must correctly convert data without losing the sign.``() : unit =
 
         let originalBytes: byte array = [| 0x01uy; 0x02uy; 0x03uy; 0x04uy; 0x05uy |]
 
@@ -145,7 +150,7 @@ type PrimeTests() =
         Assert.Equal<byte>(originalBytes, resultBytes)
 
     [<Fact>]
-    member _.``bigIntToBytes should add zero padding if the number is shorter than the specified length.`` (): unit =
+    member _.``bigIntToBytes should add zero padding if the number is shorter than the specified length.``() : unit =
 
         let originalBytes: byte array = [| 0x05uy |]
 
@@ -158,22 +163,22 @@ type PrimeTests() =
         Assert.Equal<byte>(expectedBytes, resultBytes)
 
     [<Fact>]
-    member _.``modPow must correctly calculate the remainder of a division involving a huge exponent.`` (): unit =
+    member _.``modPow must correctly calculate the remainder of a division involving a huge exponent.``() : unit =
 
-        let baseNum: Numerics.BigInteger = System.Numerics.BigInteger 2
+        let baseNum: Numerics.BigInteger = Numerics.BigInteger 2
 
-        let exponent: Numerics.BigInteger = System.Numerics.BigInteger 5
+        let exponent: Numerics.BigInteger = Numerics.BigInteger 5
 
-        let modulus: Numerics.BigInteger = System.Numerics.BigInteger 13
+        let modulus: Numerics.BigInteger = Numerics.BigInteger 13
 
         let result: Numerics.BigInteger = Prime.modPow baseNum exponent modulus
 
-        let expected: Numerics.BigInteger = System.Numerics.BigInteger 6
+        let expected: Numerics.BigInteger = Numerics.BigInteger 6
 
         Assert.Equal(expected, result)
 
     [<Fact>]
-    member _.``generateRandomBytes should generate an array of the correct length with random content.`` (): unit =
+    member _.``generateRandomBytes should generate an array of the correct length with random content.``() : unit =
 
         let length: int = 64
 
@@ -187,48 +192,52 @@ type PrimeTests() =
 
         Assert.NotEqual<byte>(bytes1, bytes2)
 
-    
+
     [<Fact>]
-    member _.``factorPQ must correctly factor small composite numbers and enforce p less than q`` (): unit =
+    member _.``factorPQ must correctly factor small composite numbers and enforce p less than q``() : unit =
         // 13 * 17 = 221. In bytes, this is [| 0xDDuy |].
-        
+
         let pqBytes: byte array = [| 0xDDuy |]
-        
+
         let pBytes, qBytes = Prime.factorPQ pqBytes
-        
+
         // Convert back to numbers for easy verification
-        
+
         let p: Numerics.BigInteger = Prime.bytesToBigInt pBytes
 
         let q: Numerics.BigInteger = Prime.bytesToBigInt qBytes
-        
+
         Assert.Equal(Numerics.BigInteger 13, p)
-        
+
         Assert.Equal(Numerics.BigInteger 17, q)
-        
+
         Assert.True(p < q) // The most important rule of MTProto: p < q
 
     [<Fact>]
-    member _.``factorPQ must successfully factor real 64-bit Telegram composite numbers from MTProto spec`` (): unit =
-        
+    member _.``factorPQ must successfully factor real 64-bit Telegram composite numbers from MTProto spec``() : unit =
+
         // The actual pq number from the Telegram documentation examples: 0x17ED48434EAF74CB
-        
-        let pqBytes: byte array = [| 0x17uy; 0xEDuy; 0x48uy; 0x43uy; 0x4Euy; 0xAFuy; 0x74uy; 0xCBuy |]
-        
+
+        let pqBytes: byte array =
+            [| 0x17uy; 0xEDuy; 0x48uy; 0x43uy; 0x4Euy; 0xAFuy; 0x74uy; 0xCBuy |]
+
         let pBytes, qBytes = Prime.factorPQ pqBytes
-        
+
         // Reconstructing a BigInteger from big-endian responses for mathematical verification.
-        
-        let p: Numerics.BigInteger = Numerics.BigInteger(pBytes, isUnsigned = true, isBigEndian = true)
-        
-        let q: Numerics.BigInteger = Numerics.BigInteger(qBytes, isUnsigned = true, isBigEndian = true)
-        
-        let pqOriginal: Numerics.BigInteger = Numerics.BigInteger(pqBytes, isUnsigned = true, isBigEndian = true)
+
+        let p: Numerics.BigInteger =
+            Numerics.BigInteger(pBytes, isUnsigned = true, isBigEndian = true)
+
+        let q: Numerics.BigInteger =
+            Numerics.BigInteger(qBytes, isUnsigned = true, isBigEndian = true)
+
+        let pqOriginal: Numerics.BigInteger =
+            Numerics.BigInteger(pqBytes, isUnsigned = true, isBigEndian = true)
 
         // 1. Check the crucial MTProto rule: p must be less than q.
-        
+
         Assert.True(p < q)
-        
+
         // 2. We verify the fundamental property of factorization: p * q must be exactly equal to pq.
 
         Assert.Equal(pqOriginal, p * q)
@@ -237,20 +246,20 @@ type PrimeTests() =
 type RsaTests() =
 
     [<Fact>]
-    member _.``encryptRaw must correctly encrypt data and pad result to exactly 256 bytes`` (): unit =
-        
+    member _.``encryptRaw must correctly encrypt data and pad result to exactly 256 bytes``() : unit =
+
         // Simple mathematical parameters for the RSA test (small primes for demonstration)
         // p = 61, q = 53 -> n = p * q = 3233. Exponent e = 17.
         // Private exponent d = 2753 (for decryption: m = c^d % n)
 
         let modulusBytes: byte array = [| 0x0Cuy; 0xA1uy |] // 3233 в Big Endian
-        
-        let exponentBytes: byte array = [| 0x11uy |]       // 17 в Big Endian
-        
-        let privateD: Numerics.BigInteger = System.Numerics.BigInteger 2753
+
+        let exponentBytes: byte array = [| 0x11uy |] // 17 в Big Endian
+
+        let privateD: Numerics.BigInteger = Numerics.BigInteger 2753
 
         // Test load (number 65)
-        
+
         let originalData: byte array = [| 0x41uy |]
 
         let encrypted: byte array = Rsa.encryptRaw originalData modulusBytes exponentBytes
@@ -258,14 +267,18 @@ type RsaTests() =
         Assert.Equal(256, encrypted.Length)
 
         // We perform manual decoding to validate the math c^d % n
-        
-        let c: Numerics.BigInteger = Numerics.BigInteger(encrypted, isUnsigned = true, isBigEndian = true)
-        
-        let n: Numerics.BigInteger = Numerics.BigInteger(modulusBytes, isUnsigned = true, isBigEndian = true)
-        
-        let decryptedBigInt: Numerics.BigInteger = Numerics.BigInteger.ModPow(c, privateD, n)
 
-        let resultBytes: byte array = decryptedBigInt.ToByteArray(isUnsigned = true, isBigEndian = true)
+        let c: Numerics.BigInteger =
+            Numerics.BigInteger(encrypted, isUnsigned = true, isBigEndian = true)
+
+        let n: Numerics.BigInteger =
+            Numerics.BigInteger(modulusBytes, isUnsigned = true, isBigEndian = true)
+
+        let decryptedBigInt: Numerics.BigInteger =
+            Numerics.BigInteger.ModPow(c, privateD, n)
+
+        let resultBytes: byte array =
+            decryptedBigInt.ToByteArray(isUnsigned = true, isBigEndian = true)
 
         // 3. We verify that the original byte 0x41 (65) has been successfully recovered.
         Assert.Equal<byte>(originalData, resultBytes)
@@ -274,42 +287,43 @@ type RsaTests() =
 type KdfTests() =
 
     [<Fact>]
-    member _.``deriveHandshakeAesParams must correctly compute exactly 32-byte key and IV primitives`` (): unit =
-    
+    member _.``deriveHandshakeAesParams must correctly compute exactly 32-byte key and IV primitives``() : unit =
+
         // 1. We prepare the fixed input parameters (16-byte server_nonce and 32-byte new_nonce).
-        
+
         let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
-        
+
         let fakeNewNonce: byte array = Array.init 32 (fun i -> byte (i + 10))
 
         // 2. Initiating KDF parameter generation.
 
         let tmpKey, tmpIv = Kdf.deriveHandshakeAesParams fakeServerNonce fakeNewNonce
 
-        // 3. We calculate the reference values ​​manually directly within the test to verify the slicing.
-        
+        // 3. We calculate the reference values manually directly within the test to verify the slicing.
+
         let sha1A: byte array = Hash.sha1 (Array.concat [ fakeNewNonce; fakeServerNonce ])
-        
+
         let sha1B: byte array = Hash.sha1 (Array.concat [ fakeServerNonce; fakeNewNonce ])
-        
+
         let sha1C: byte array = Hash.sha1 (Array.concat [ fakeNewNonce; fakeNewNonce ])
 
         // Assembling the expected key: the first 20 bytes from sha1A, the next 12 bytes from sha1B.
-        
+
         let expectedKey: byte array = Array.concat [ sha1A; sha1B.[0..11] ]
-        
+
         // Assembly of the expected IV: 8 bytes from sha1B, 20 bytes from sha1C, 4 bytes from new_nonce.
-        
-        let expectedIv: byte array = Array.concat [ sha1B.[12..19]; sha1C; fakeNewNonce.[0..3] ]
+
+        let expectedIv: byte array =
+            Array.concat [ sha1B.[12..19]; sha1C; fakeNewNonce.[0..3] ]
 
         // 4. We verify strict size invariants (AES-256 IGE requires exactly 32 + 32 bytes).
-        
+
         Assert.Equal(32, tmpKey.Length)
-        
+
         Assert.Equal(32, tmpIv.Length)
 
         // 5. Verifying the byte-level accuracy of the segmentation against the MTProto specification.
-        
+
         Assert.Equal<byte>(expectedKey, tmpKey)
-        
+
         Assert.Equal<byte>(expectedIv, tmpIv)

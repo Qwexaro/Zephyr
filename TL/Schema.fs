@@ -35,75 +35,88 @@ module Schema =
     /// <summary>
     /// The magic hexadecimal Constructor ID for the req_pq_multi method (0xbece7170).
     /// </summary>
-    let [<Literal>] private ReqPqMultiConstructorId: int = -1093762704 // 0xbece7170 in signed int32
+    [<Literal>]
+    let private ReqPqMultiConstructorId: int = -1093762704 // 0xbece7170 in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the resPQ response (0x05162463).
     /// </summary>
-    let [<Literal>] private ResPqConstructorId: int = 85337187 // 0x05162463 in signed int32
+    [<Literal>]
+    let private ResPqConstructorId: int = 85337187 // 0x05162463 in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the ping method (0x7abe97ec).
     /// </summary>
-    let [<Literal>] private PingConstructorId: int = 2059311084
+    [<Literal>]
+    let private PingConstructorId: int = 2059311084
 
-    
+
     /// <summary>
     /// The magic hexadecimal Constructor ID for the pong response (0x34771110).
     /// </summary>
-    let [<Literal>] private PongConstructorId: int = 879202576
+    [<Literal>]
+    let private PongConstructorId: int = 879202576
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the p_q_inner_data_dc constructor (0xa9f55f95).
     /// </summary>
-    let [<Literal>] private PqInnerDataDcConstructorId: int = -1443537003 // 0xa9f55f95 in signed int32
+    [<Literal>]
+    let private PqInnerDataDcConstructorId: int = -1443537003 // 0xa9f55f95 in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the req_DH_params method (0xd712e4be).
     /// </summary>
-    let [<Literal>] private ReqDhParamsConstructorId: int = -686627650 // 0xd712e4be in signed int32
+    [<Literal>]
+    let private ReqDhParamsConstructorId: int = -686627650 // 0xd712e4be in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the server_DH_params_fail response (0x79cb045d).
     /// </summary>
-    let [<Literal>] private ServerDhParamsFailConstructorId: int = 2043348061 // 0x79cb045d in signed int32
+    [<Literal>]
+    let private ServerDhParamsFailConstructorId: int = 2043348061 // 0x79cb045d in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the server_DH_params_ok response (0xd1435160).
     /// </summary>
-    let [<Literal>] private ServerDhParamsOkConstructorId: int = -784117408 // 0xd1435160 in signed int32
+    [<Literal>]
+    let private ServerDhParamsOkConstructorId: int = -784117408 // 0xd1435160 in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the server_DH_inner_data constructor (0xb589da1d).
     /// </summary>
-    let [<Literal>] private ServerDhInnerDataConstructorId: int = -1249256931 // 0xb589da1d in signed int32
+    [<Literal>]
+    let private ServerDhInnerDataConstructorId: int = -1249256931 // 0xb589da1d in signed int32
 
 
     /// <summary>
     /// The magic hexadecimal Constructor ID for the set_client_DH_params method (0xf5045f1f).
     /// </summary>
-    let [<Literal>] private SetClientDhParamsConstructorId: int = -184262881 // 0xf5045f1f in signed int32
+    [<Literal>]
+    let private SetClientDhParamsConstructorId: int = -184262881 // 0xf5045f1f in signed int32
 
 
     /// <summary>
     /// Represents the rejected Phase 2 response from the Telegram server (server_DH_params_fail#79cb045d).
     /// </summary>
     type ServerDhParamsFailResponse(nonce: byte[], serverNonce: byte[], newNonceHash: byte[]) =
-        
+
         do
 
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes."
 
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
 
-            if newNonceHash = null || newNonceHash.Length <> 16 then invalidArg "newNonceHash" "The newNonceHash must be exactly 16 bytes."
+            if newNonceHash = null || newNonceHash.Length <> 16 then
+                invalidArg "newNonceHash" "The newNonceHash must be exactly 16 bytes."
 
         member _.Nonce: byte array = nonce
 
@@ -115,7 +128,7 @@ module Schema =
 
             member _.ConstructorId: int = ServerDhParamsFailConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
+            member _.Serialize(writer: TlWriter) : unit =
 
                 writer.WriteInt ServerDhParamsFailConstructorId
 
@@ -129,7 +142,7 @@ module Schema =
         /// <summary>
         /// Deserializes a ServerDhParamsFailResponse object from the provided TlReader binary stream.
         /// </summary>
-        static member Deserialize(reader: TlReader): ServerDhParamsFailResponse =
+        static member Deserialize(reader: TlReader) : ServerDhParamsFailResponse =
 
             let nonce: byte array = reader.ReadBytesFixed 16
 
@@ -145,43 +158,45 @@ module Schema =
     /// Represents the successful Phase 2 response containing encrypted DH parameters (server_DH_params_ok#d1435160).
     /// </summary>
     type ServerDhParamsOkResponse(nonce: byte[], serverNonce: byte[], encryptedAnswer: byte[]) =
-        
+
         do
-            
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
-            
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes."
+
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
 
         member _.Nonce: byte array = nonce
-        
+
         member _.ServerNonce: byte array = serverNonce
-        
+
         member _.EncryptedAnswer: byte array = encryptedAnswer
 
         interface ITlObject with
-            
+
             member _.ConstructorId: int = ServerDhParamsOkConstructorId
-            
-            member _.Serialize(writer: TlWriter): unit =
-            
+
+            member _.Serialize(writer: TlWriter) : unit =
+
                 writer.WriteInt ServerDhParamsOkConstructorId
-            
+
                 writer.WriteBytesFixed nonce
-            
+
                 writer.WriteBytesFixed serverNonce
-            
+
                 writer.WriteBytes encryptedAnswer // Dynamic byte string with a length header
 
-        
+
         /// <summary>
         /// Deserializes a ServerDhParamsOkResponse object from the provided TlReader binary stream.
         /// </summary>
-        static member Deserialize(reader: TlReader): ServerDhParamsOkResponse =
-            
+        static member Deserialize(reader: TlReader) : ServerDhParamsOkResponse =
+
             let nonce: byte array = reader.ReadBytesFixed 16
-            
+
             let serverNonce: byte array = reader.ReadBytesFixed 16
-            
+
             let encryptedAnswer: byte array = reader.ReadBytes()
 
             new ServerDhParamsOkResponse(nonce, serverNonce, encryptedAnswer)
@@ -190,51 +205,55 @@ module Schema =
     /// <summary>
     /// Represents the inner data container to be encrypted via RSA during Phase 2 (p_q_inner_data_dc#a9f55f95).
     /// </summary>
-    type PqInnerDataDc(pq: byte[], p: byte[], q: byte[], nonce: byte[], serverNonce: byte[], newNonce: byte[], dc: int) =
-        
+    type PqInnerDataDc(pq: byte[], p: byte[], q: byte[], nonce: byte[], serverNonce: byte[], newNonce: byte[], dc: int)
+        =
+
         do
 
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes (128 bits) long."
-        
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes (128 bits) long."
-            
-            if newNonce = null || newNonce.Length <> 32 then invalidArg "newNonce" "The newNonce must be exactly 32 bytes (256 bits) long."
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes (128 bits) long."
 
-        
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes (128 bits) long."
+
+            if newNonce = null || newNonce.Length <> 32 then
+                invalidArg "newNonce" "The newNonce must be exactly 32 bytes (256 bits) long."
+
+
         member _.Pq: byte array = pq
 
         member _.P: byte array = p
-        
+
         member _.Q: byte array = q
-        
+
         member _.Nonce: byte array = nonce
-        
+
         member _.ServerNonce: byte array = serverNonce
-        
+
         member _.NewNonce: byte array = newNonce
-        
+
         member _.Dc: int = dc
 
         interface ITlObject with
-        
+
             member _.ConstructorId: int = PqInnerDataDcConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
-        
+            member _.Serialize(writer: TlWriter) : unit =
+
                 writer.WriteInt PqInnerDataDcConstructorId
-        
+
                 writer.WriteBytes pq
-        
+
                 writer.WriteBytes p
-        
+
                 writer.WriteBytes q
-        
+
                 writer.WriteBytesFixed nonce
-        
+
                 writer.WriteBytesFixed serverNonce
-        
+
                 writer.WriteBytesFixed newNonce // Write int256 as fixed 32 bytes without headers
-        
+
                 writer.WriteInt dc
 
 
@@ -242,32 +261,35 @@ module Schema =
     /// <summary>
     /// Represents the public Phase 2 request wrapping the encrypted inner parameters (req_DH_params#d712e4be).
     /// </summary>
-    type ReqDhParamsRequest(nonce: byte[], serverNonce: byte[], p: byte[], q: byte[], fingerprint: int64, encryptedData: byte[]) =
-        
-        do
-            
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
-            
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+    type ReqDhParamsRequest
+        (nonce: byte[], serverNonce: byte[], p: byte[], q: byte[], fingerprint: int64, encryptedData: byte[]) =
 
-        
+        do
+
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes."
+
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+
         member _.Nonce: byte array = nonce
 
         member _.ServerNonce: byte array = serverNonce
-        
+
         member _.P: byte array = p
-        
+
         member _.Q: byte array = q
-        
+
         member _.PublicKeyFingerprint: int64 = fingerprint
-        
+
         member _.EncryptedData: byte array = encryptedData
 
         interface ITlObject with
 
             member _.ConstructorId: int = ReqDhParamsConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
+            member _.Serialize(writer: TlWriter) : unit =
 
                 writer.WriteInt ReqDhParamsConstructorId
 
@@ -288,11 +310,11 @@ module Schema =
     /// Represents the non-encrypted 'req_pq_multi' request (req_pq_multi#bece7170).
     /// </summary>
     type ReqPqMultiRequest(nonce: byte[]) =
-        
+
         do
-            
+
             if nonce = null || nonce.Length <> 16 then
-            
+
                 invalidArg "nonce" "The cryptographic nonce for req_pq_multi must be exactly 16 bytes (128 bits) long."
 
 
@@ -302,22 +324,22 @@ module Schema =
         /// <returns>byte array</returns>
         member _.Nonce: byte array = nonce
 
-    
+
         interface ITlObject with
             member _.ConstructorId: int = ReqPqMultiConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
+            member _.Serialize(writer: TlWriter) : unit =
 
                 writer.WriteInt ReqPqMultiConstructorId
-            
+
                 writer.WriteBytesFixed nonce
 
-        
+
     /// <summary>
     /// Represents the remote server response containing PQ factorization data (resPQ#05162463).
     /// </summary>
     type ResPqResponse(nonce: byte[], serverNonce: byte[], pq: byte[], fingerprints: int64 array) =
-        
+
         /// <summary>
         /// Gets the 128-bit random identifier generated by the client.
         /// </summary>
@@ -346,45 +368,48 @@ module Schema =
 
             member _.ConstructorId: int = ResPqConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
-        
+            member _.Serialize(writer: TlWriter) : unit =
+
                 writer.WriteInt ResPqConstructorId
-        
+
                 writer.WriteBytesFixed nonce
-        
+
                 writer.WriteBytesFixed serverNonce
-        
+
                 writer.WriteBytes pq
-                
+
                 writer.WriteInt 481673237 // 0x1cb5c415 in signed int32
-        
+
                 writer.WriteInt fingerprints.Length
 
-                for fp: int64 in fingerprints do writer.WriteLong fp
+                for fp: int64 in fingerprints do
+                    writer.WriteLong fp
 
-            
+
         /// <summary>
         /// Deserializes a ResPqResponse object from the provided TlReader binary stream.
         /// </summary>
         /// <param name="reader">The active TlReader stream.</param>
         /// <returns>ResPqResponse</returns>
-        static member Deserialize(reader: TlReader): ResPqResponse =
-        
+        static member Deserialize(reader: TlReader) : ResPqResponse =
+
             let nonce: byte array = reader.ReadBytesFixed 16
-        
+
             let serverNonce: byte array = reader.ReadBytesFixed 16
-        
+
             let pq: byte array = reader.ReadBytes()
-            
+
             let vectorId: int = reader.ReadInt()
-        
-            if vectorId <> 481673237 then raise (System.IO.InvalidDataException("Mismatched TL Vector constructor ID while parsing fingerprints."))
-                
+
+            if vectorId <> 481673237 then
+                raise (System.IO.InvalidDataException "Mismatched TL Vector constructor ID while parsing fingerprints.")
+
             let count: int = reader.ReadInt()
             let fingerprints: int64 array = Array.zeroCreate count
+
             for i in 0 .. count - 1 do
                 fingerprints.[i] <- reader.ReadLong()
-                
+
             new ResPqResponse(nonce, serverNonce, pq, fingerprints)
 
 
@@ -401,18 +426,18 @@ module Schema =
         /// <returns>int64</returns>
         member _.PingId: int64 = pingId
 
-        
+
         interface ITlObject with
 
             member _.ConstructorId: int = PingConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
+            member _.Serialize(writer: TlWriter) : unit =
 
                 writer.WriteInt PingConstructorId
-            
+
                 writer.WriteLong pingId
 
-    
+
     /// <summary>
     /// Represents the core 'pong' response structure (pong#34771110).
     /// </summary>
@@ -435,7 +460,7 @@ module Schema =
         interface ITlObject with
             member _.ConstructorId: int = PongConstructorId
 
-            member _.Serialize(writer: TlWriter): unit =
+            member _.Serialize(writer: TlWriter) : unit =
 
                 writer.WriteInt PongConstructorId
 
@@ -449,106 +474,110 @@ module Schema =
         /// </summary>
         /// <param name="reader">The active TlReader stream.</param>
         /// <returns>PongResponse</returns>
-        static member Deserialize(reader: TlReader): PongResponse =
+        static member Deserialize(reader: TlReader) : PongResponse =
 
             let msgId: int64 = reader.ReadLong()
-        
+
             let pingId: int64 = reader.ReadLong()
-        
+
             new PongResponse(msgId, pingId)
 
-    
+
     /// <summary>
     /// Represents the decrypted inner DH parameters returned by the Telegram server (server_DH_inner_data#b589da1d).
     /// </summary>
     type ServerDhInnerData(nonce: byte[], serverNonce: byte[], g: int, dhPrime: byte[], gA: byte[], serverTime: int) =
-        
+
         do
-    
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
-    
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes."
+
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
 
         member _.Nonce: byte array = nonce
 
         member _.ServerNonce: byte array = serverNonce
-        
+
         member _.G: int = g
-        
+
         member _.DhPrime: byte array = dhPrime
-        
+
         member _.GA: byte array = gA
-        
+
         member _.ServerTime: int = serverTime
 
         interface ITlObject with
-        
+
             member _.ConstructorId: int = ServerDhInnerDataConstructorId
-        
-            member _.Serialize(writer: TlWriter): unit =
-        
+
+            member _.Serialize(writer: TlWriter) : unit =
+
                 writer.WriteInt ServerDhInnerDataConstructorId
-        
+
                 writer.WriteBytesFixed nonce
-        
+
                 writer.WriteBytesFixed serverNonce
-        
+
                 writer.WriteInt g
-        
+
                 writer.WriteBytes dhPrime
-        
+
                 writer.WriteBytes gA
-        
+
                 writer.WriteInt serverTime
 
         /// <summary>
         /// Deserializes a ServerDhInnerData object from the provided TlReader binary stream.
         /// </summary>
-        static member Deserialize(reader: TlReader): ServerDhInnerData =
+        static member Deserialize(reader: TlReader) : ServerDhInnerData =
 
             let nonce: byte array = reader.ReadBytesFixed 16
-        
+
             let serverNonce: byte array = reader.ReadBytesFixed 16
-        
+
             let g: int = reader.ReadInt()
-        
+
             let dhPrime: byte array = reader.ReadBytes()
-        
+
             let gA: byte array = reader.ReadBytes()
-        
+
             let serverTime: int = reader.ReadInt()
-        
+
             new ServerDhInnerData(nonce, serverNonce, g, dhPrime, gA, serverTime)
 
-    
+
 
     /// <summary>
     /// Represents the final Phase 3 request sending the client's public DH parameter to Telegram (set_client_DH_params#f5045f1f).
     /// </summary>
     type SetClientDhParamsRequest(nonce: byte[], serverNonce: byte[], gB: byte[]) =
-        
+
         do
-            
-            if nonce = null || nonce.Length <> 16 then invalidArg "nonce" "The nonce must be exactly 16 bytes."
-            
-            if serverNonce = null || serverNonce.Length <> 16 then invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
+
+            if nonce = null || nonce.Length <> 16 then
+                invalidArg "nonce" "The nonce must be exactly 16 bytes."
+
+            if serverNonce = null || serverNonce.Length <> 16 then
+                invalidArg "serverNonce" "The serverNonce must be exactly 16 bytes."
 
         member _.Nonce: byte array = nonce
-        
+
         member _.ServerNonce: byte array = serverNonce
-        
+
         member _.GB: byte array = gB
 
         interface ITlObject with
-        
+
             member _.ConstructorId: int = SetClientDhParamsConstructorId
-        
-            member _.Serialize(writer: TlWriter): unit =
-        
+
+            member _.Serialize(writer: TlWriter) : unit =
+
                 writer.WriteInt SetClientDhParamsConstructorId
-        
+
                 writer.WriteBytesFixed nonce
-        
+
                 writer.WriteBytesFixed serverNonce
-        
+
                 writer.WriteBytes gB

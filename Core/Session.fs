@@ -19,17 +19,18 @@ open System.Threading.Tasks
 /// <summary>
 /// Represents the core MTProto session data required to authenticate with Telegram
 /// </summary>
-type SessionData = {
+type SessionData =
+    {
 
-    AuthKey: byte[]
+      AuthKey: byte[]
 
-    DcId: int
+      DcId: int
 
-    Ip: string
+      Ip: string
 
-    Port: int
+      Port: int
 
-}
+    }
 
 type Session(sessionName: string) =
 
@@ -43,7 +44,7 @@ type Session(sessionName: string) =
 
         let bytes: byte array = Array.zeroCreate 8
 
-        rng.GetBytes(bytes)
+        rng.GetBytes bytes
 
         sessionId <- BitConverter.ToInt64(bytes, 0)
 
@@ -62,20 +63,20 @@ type Session(sessionName: string) =
     /// <returns></returns>
     member _.Data
 
-        with get() = currentData
+        with get () = currentData
 
-        and set(value: SessionData option) = currentData <- value
+        and set (value: SessionData option) = currentData <- value
 
-    
+
     /// <summary>
     /// Checks if the session already contains a valid generated Auth Key
     /// </summary>
     /// <returns>bool</returns>
-    member _.IsAuthorized = 
+    member _.IsAuthorized =
 
         match currentData with
-        
-        | Some (data: SessionData) -> data.AuthKey <> null && data.AuthKey.Length = 256
+
+        | Some(data: SessionData) -> data.AuthKey <> null && data.AuthKey.Length = 256
 
         | None -> false
 
@@ -85,7 +86,7 @@ type Session(sessionName: string) =
     /// </summary>
     /// <param name="unit"></param>
     /// <returns>Task&lt;unit&gt;</returns>
-    member this.SaveToFileAsync(): Task<unit> =
+    member _.SaveToFileAsync() : Task<unit> =
 
         async {
 
@@ -93,57 +94,61 @@ type Session(sessionName: string) =
 
             | None -> return ()
 
-            | Some (data: SessionData) ->
+            | Some(data: SessionData) ->
 
                 let filePath: string = sprintf "%s.zsession" sessionName
 
-                use fileStream: FileStream = new FileStream(filePath, FileMode.Create,   FileAccess.Write, FileShare.None, 4096, true)
+                use fileStream: FileStream =
+                    new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true)
 
                 use writer: BinaryWriter = new BinaryWriter(fileStream)
 
-                writer.Write("ZEPHYR")
+                writer.Write "ZEPHYR"
 
-                writer.Write(data.DcId)
+                writer.Write data.DcId
 
                 writer.Write(data.Ip: string)
 
-                writer.Write(data.Port)
+                writer.Write data.Port
 
-                writer.Write(data.AuthKey.Length)
+                writer.Write data.AuthKey.Length
 
                 writer.Write(data.AuthKey: byte[])
 
-        } |> Async.StartAsTask
+        }
+        |> Async.StartAsTask
 
-    
+
     /// <summary>
     /// Asynchronously loads the session data from a local binary file if it exists
     /// </summary>
     /// <param name=""></param>
     /// <returns>Task&lt;bool&gt;</returns>
-    member this.LoadFromFileAsync(): Task<bool> =
+    member _.LoadFromFileAsync() : Task<bool> =
 
         async {
 
             let filePath: string = sprintf "%s.zsession" sessionName
 
-            if not (File.Exists filePath) then 
+            if not (File.Exists filePath) then
 
                 currentData <- None
 
                 return false
 
-            else 
+            else
 
                 try
 
-                    use fileStream: FileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)
+                    use fileStream: FileStream =
+                        new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true)
 
                     use reader: BinaryReader = new BinaryReader(fileStream)
 
                     let marker: string = reader.ReadString()
 
-                    if marker <> "ZEPHYR" then raise (InvalidDataException("Invalid session file format marker"))
+                    if marker <> "ZEPHYR" then
+                        raise (InvalidDataException "Invalid session file format marker")
 
                     let dcId: int32 = reader.ReadInt32()
 
@@ -155,24 +160,28 @@ type Session(sessionName: string) =
 
                     let authKey: byte array = reader.ReadBytes keyLength
 
-                    currentData <- Some {
+                    currentData <-
+                        Some
+                            {
 
-                        AuthKey = authKey
+                              AuthKey = authKey
 
-                        DcId = dcId
+                              DcId = dcId
 
-                        Ip = ip
+                              Ip = ip
 
-                        Port = port
-                        
-                    }
+                              Port = port
+
+                            }
 
                     return true
-                
-                with _ -> 
+
+                with _ ->
 
                     currentData <- None
 
                     return false
 
-        } |> Async.StartAsTask
+        }
+        |> Async.StartAsTask
+

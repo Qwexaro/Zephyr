@@ -25,7 +25,7 @@ type TcpTransportTests() =
     /// </summary>
     let startLocalServer (): Net.Sockets.TcpListener * int =
         
-        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(Net.IPAddress.Loopback, 0)
         
         listener.Start()
         
@@ -219,7 +219,7 @@ type SessionTests() =
         
         task {
         
-            let uniqueName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_session_%s" (Guid.NewGuid().ToString("N")))
+            let uniqueName: string = IO.Path.Combine(Path.GetTempPath(), sprintf "zephyr_session_%s" (Guid.NewGuid().ToString "N"))
         
             let fakeAuthKey: byte array = Array.init 256 (fun i -> byte (i % 256))
         
@@ -251,7 +251,7 @@ type SessionTests() =
             
             let expectedFilePath: string = sprintf "%s.zsession" uniqueName
             
-            if IO.File.Exists expectedFilePath then IO.File.Delete expectedFilePath
+            if File.Exists expectedFilePath then File.Delete expectedFilePath
 
             Assert.True loadResult
 
@@ -280,7 +280,7 @@ type SessionTests() =
         
         task {
         
-            let nonExistentName: string = IO.Path.Combine(IO.Path.GetTempPath(), sprintf "zephyr_ghost_%s" (Guid.NewGuid().ToString("N")))
+            let nonExistentName: string = IO.Path.Combine(Path.GetTempPath(), sprintf "zephyr_ghost_%s" (Guid.NewGuid().ToString "N"))
             
             let session: Session = new Session(nonExistentName)
             
@@ -311,7 +311,7 @@ type HandshakeEngineTests() =
 
     let startLocalServer (): Net.Sockets.TcpListener * int =
 
-        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0)
+        let listener: Net.Sockets.TcpListener = new Net.Sockets.TcpListener(Net.IPAddress.Loopback, 0)
 
         listener.Start()
 
@@ -334,17 +334,17 @@ type HandshakeEngineTests() =
                 
                 let initBuf = Array.zeroCreate 1
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
 
                 let headerBuf = Array.zeroCreate 1
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(headerBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> headerBuf)
             
                 let packetLength = int headerBuf.[0] * 4
                 
                 let packetBuf = Array.zeroCreate packetLength
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(packetBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> packetBuf)
 
                 use requestReader = new TlReader(packetBuf)
             
@@ -380,9 +380,9 @@ type HandshakeEngineTests() =
             
                 let transportHeader = [| byte responseLengthInWords |]
                 
-                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(transportHeader))
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> transportHeader)
             
-                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(rawResponse))
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> rawResponse)
             
                 do! serverStream.FlushAsync()
             }
@@ -395,7 +395,7 @@ type HandshakeEngineTests() =
 
             let! response = engine.ExecutePhase1Async()
             
-            let! _ = Task.WhenAny(serverTask, Task.Delay(2000))
+            let! _ = Task.WhenAny(serverTask, Task.Delay 2000)
             
             listener.Stop()
 
@@ -425,11 +425,11 @@ type HandshakeEngineTests() =
                 
                 let initBuf = Array.zeroCreate 1
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(initBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> initBuf)
 
                 let headerBuf = Array.zeroCreate 1
             
-                let! _ = serverStream.ReadAsync(Memory<byte>(headerBuf))
+                let! _ = serverStream.ReadAsync(Memory<byte> headerBuf)
             
                 let packetLength = int headerBuf.[0] * 4
 
@@ -465,9 +465,9 @@ type HandshakeEngineTests() =
             
                 let transportHeader = [| byte (rawResponse.Length / 4) |]
                 
-                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(transportHeader))
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> transportHeader)
             
-                do! serverStream.WriteAsync(ReadOnlyMemory<byte>(rawResponse))
+                do! serverStream.WriteAsync(ReadOnlyMemory<byte> rawResponse)
             
                 do! serverStream.FlushAsync()
             }
@@ -484,7 +484,7 @@ type HandshakeEngineTests() =
             
             )
 
-            let! _ = Task.WhenAny(serverTask, Task.Delay(1000))
+            let! _ = Task.WhenAny(serverTask, Task.Delay 1000)
             
             listener.Stop()
         }
