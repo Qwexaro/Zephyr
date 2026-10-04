@@ -136,6 +136,9 @@ dotnet test
 ```bash
 docker build -t zephyr-tests .
 ```
+# Architecture diagram of Zephyr
+[![Architecture diagram of qwexaro/zephyr](https://gitdiagram.com/qwexaro/zephyr/diagram.png)](https://gitdiagram.com/qwexaro/zephyr?utm_source=readme&utm_medium=picture)
+
 </details>
 
 <details open>
