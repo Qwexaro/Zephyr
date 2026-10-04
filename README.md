@@ -130,8 +130,40 @@ dotnet test
 ```bash
 docker build -t zephyr-tests .
 ```
-# Architecture diagram of Zephyr
+# Architecture diagram of Zephyr:
 [![Architecture diagram of qwexaro/zephyr](https://gitdiagram.com/qwexaro/zephyr/diagram.png)](https://gitdiagram.com/qwexaro/zephyr?utm_source=readme&utm_medium=picture)
 
-</details>
-
+# Directory structure:
+```Directory structure
+└── Zephyr/
+    ├── README.md
+    ├── Directory.Build.props
+    ├── Dockerfile
+    ├── LICENSE
+    ├── Zephyr.slnx
+    ├── Core/
+    │   ├── HandshakeEngine.fs
+    │   ├── Session.fs
+    │   ├── TcpTransport.fs
+    │   └── Zephyr.Core.fsproj
+    ├── Crypto/
+    │   ├── AesIge.fs
+    │   ├── Hash.fs
+    │   ├── Kdf.fs
+    │   ├── Prime.fs
+    │   ├── Rsa.fs
+    │   └── Zephyr.Crypto.fsproj
+    ├── Tests/
+    │   ├── CryptoTests.fs
+    │   ├── NetworkTests.fs
+    │   ├── TlTests.fs
+    │   └── Zephyr.Tests.fsproj
+    ├── TL/
+    │   ├── Schema.fs
+    │   ├── TlReader.fs
+    │   ├── TlWriter.fs
+    │   └── Zephyr.TL.fsproj
+    └── .github/
+        └── workflows/
+            └── test.yml
+```
