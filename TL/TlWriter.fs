@@ -39,13 +39,15 @@ type TlWriter() =
         let length = bytes.Length
 
         if length < 254 then
+
             writer.Write(byte length)
 
-            writer.Write(bytes: byte[])
+            writer.Write(bytes)
 
             let padding = (1 + length) % 4
 
             if padding <> 0 then
+
                 writer.Write(Array.zeroCreate (4 - padding): byte[])
 
         else
@@ -58,11 +60,12 @@ type TlWriter() =
 
             writer.Write(byte (length >>> 16 &&& 0xFF))
 
-            writer.Write(bytes: byte[])
+            writer.Write(bytes)
 
-            let padding = (4 + length) % 4
+            let padding = length % 4
 
             if padding <> 0 then
+
                 writer.Write(Array.zeroCreate (4 - padding): byte[])
 
     ///<summary> Converts the string into UTF-8 bytes and writes it using Telegram rules </summary>
