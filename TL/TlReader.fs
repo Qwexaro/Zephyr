@@ -33,6 +33,7 @@ type TlReader(bytes: byte[]) =
     member _.ReadBytes() =
 
         if stream.Position >= stream.Length then
+
             invalidOp "Attempt to read beyond the stream"
 
         let firstByte = reader.ReadByte()
@@ -45,10 +46,13 @@ type TlReader(bytes: byte[]) =
 
             length <- int firstByte
 
-            padding <- (1 + length) % 4
+            let totalWritten = 1 + length
 
-            if padding <> 0 then
-                padding <- 4 - padding
+            let rem = totalWritten % 4
+
+            if rem <> 0 then
+
+                padding <- 4 - rem
 
         else
 
@@ -60,23 +64,28 @@ type TlReader(bytes: byte[]) =
 
             length <- int b1 + (int b2 <<< 8) + (int b3 <<< 16)
 
-            padding <- (4 + length) % 4
+            let rem = length % 4
 
-            if padding <> 0 then
-                padding <- 4 - padding
+            if rem <> 0 then
+
+                padding <- 4 - rem
 
         let data = reader.ReadBytes length
 
         if data.Length <> length then
+
             raise (EndOfStreamException "Failed to read the stated number of bytes!")
 
         if padding > 0 then
-            stream.Seek(int64 padding, SeekOrigin.Current) |> ignore
+
+            for _ in 1..padding do
+
+                reader.ReadByte() |> ignore
 
         data
 
     /// <summary>
-    ///  converts the read TL bytes into UTF-8 text
+    /// Converts the read TL bytes into UTF-8 text
     /// </summary>
     member this.ReadString() =
 
@@ -84,21 +93,20 @@ type TlReader(bytes: byte[]) =
 
         Encoding.UTF8.GetString bytes
 
-
     /// <summary>
     /// Read a fixed number of raw bytes directly from the stream without parsing TL length headers.
     /// Used for reading fixed crypto primitives like int128 (nonce) or int256.
     /// </summary>
-    /// <param name="count">The exact number of bytes to extract.</param>
-    /// <returns>byte array</returns>
     member _.ReadBytesFixed(count: int) : byte array =
 
         if stream.Position + int64 count > stream.Length then
+
             invalidOp "Attempt to read fixed bytes beyond the end of the stream."
 
-        let data: byte array = reader.ReadBytes count
+        let data = reader.ReadBytes count
 
         if data.Length <> count then
+
             raise (EndOfStreamException "Failed to read the exact number of fixed bytes from the stream.")
 
         data
@@ -109,7 +117,6 @@ type TlReader(bytes: byte[]) =
         /// <summary>
         /// Implementing the IDisposable interface ensures that we can immediately
         /// close the MemoryStream and BinaryReader
-        /// as soon as they have completed their task.
         /// </summary>
         member _.Dispose() =
 
