@@ -16,7 +16,7 @@ open Zephyr.TL
 type TlWriterTests() =
 
     [<Fact>]
-    member _.``ReqPqMultiRequest must correctly serialize its constructor ID and raw 16-byte nonce`` (): unit =
+    member _.``ReqPqMultiRequest must correctly serialize its constructor ID and raw 16-byte nonce``() : unit =
 
         let fakeNonce: byte array = Array.init 16 (fun i -> byte i)
 
@@ -30,7 +30,8 @@ type TlWriterTests() =
 
         let result: byte array = writer.ToBytes()
 
-        let expected: byte array = Array.concat [ [| 0x70uy; 0x81uy; 0xceuy; 0xbeuy |]; fakeNonce ]
+        let expected: byte array =
+            Array.concat [ [| 0x70uy; 0x81uy; 0xceuy; 0xbeuy |]; fakeNonce ]
 
         Assert.Equal(-1093762704, tlObject.ConstructorId)
 
@@ -38,56 +39,58 @@ type TlWriterTests() =
 
 
     [<Fact>]
-    member _.``PqInnerDataDc must correctly serialize fixed blocks, int256 new_nonce, and datacenter ID`` (): unit =
-        
+    member _.``PqInnerDataDc must correctly serialize fixed blocks, int256 new_nonce, and datacenter ID``() : unit =
+
         let fakePq: byte array = [| 0x12uy; 0x34uy |]
-        
+
         let fakeP: byte array = [| 0x05uy |]
-        
+
         let fakeQ: byte array = [| 0x07uy |]
-        
+
         let fakeNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
-        
+
         let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
-        
+
         let fakeNewNonce: byte array = Array.init 32 (fun i -> byte (i + 20))
-        
+
         let fakeDc: int = 2
 
-        let container: Schema.PqInnerDataDc = new Schema.PqInnerDataDc(fakePq, fakeP, fakeQ, fakeNonce, fakeServerNonce, fakeNewNonce, fakeDc)
-        
+        let container: Schema.PqInnerDataDc =
+            new Schema.PqInnerDataDc(fakePq, fakeP, fakeQ, fakeNonce, fakeServerNonce, fakeNewNonce, fakeDc)
+
         let tlObject: ITlObject = container :> ITlObject
 
         use writer: TlWriter = new TlWriter()
-        
+
         tlObject.Serialize writer
-        
+
         let result: byte array = writer.ToBytes()
 
         let expectedHeader: byte array = [| 0x95uy; 0x5fuy; 0xf5uy; 0xa9uy |]
-        
+
         Assert.Equal(-1443537003, tlObject.ConstructorId)
-        
+
         Assert.NotEmpty result
-        
+
         Assert.Equal<byte>(expectedHeader, result.[0..3])
 
     [<Fact>]
-    member _.``ReqDhParamsRequest must correctly serialize envelope headers and encrypted bytes payload`` (): unit =
-        
+    member _.``ReqDhParamsRequest must correctly serialize envelope headers and encrypted bytes payload``() : unit =
+
         let fakeNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
-        
+
         let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
-        
+
         let fakeP: byte array = [| 0x0Auy |]
-        
+
         let fakeQ: byte array = [| 0x0Buy |]
-        
+
         let fakeFingerprint: int64 = 1234567890L
-        
+
         let fakeEncrypted: byte array = Array.init 64 (fun i -> byte i)
 
-        let request: Schema.ReqDhParamsRequest = new Schema.ReqDhParamsRequest(fakeNonce, fakeServerNonce, fakeP, fakeQ, fakeFingerprint, fakeEncrypted)
+        let request: Schema.ReqDhParamsRequest =
+            new Schema.ReqDhParamsRequest(fakeNonce, fakeServerNonce, fakeP, fakeQ, fakeFingerprint, fakeEncrypted)
 
         let tlObject: ITlObject = request :> ITlObject
 
@@ -106,24 +109,25 @@ type TlWriterTests() =
 
         Assert.Equal<byte>(expectedHeader, result.[0..3])
 
-    
+
     [<Fact>]
-    member _.``SetClientDhParamsRequest must correctly serialize envelope nonces and gB bytes`` (): unit =
-        
+    member _.``SetClientDhParamsRequest must correctly serialize envelope nonces and gB bytes``() : unit =
+
         let fakeNonce: byte array = Array.init 16 (fun i -> byte (i + 2))
-        
+
         let fakeServerNonce: byte array = Array.init 16 (fun i -> byte (i + 12))
-        
+
         let fakeGb: byte array = [| 0xDEuy; 0xADuy; 0xBEuy; 0xEFuy |]
 
-        let request: Schema.SetClientDhParamsRequest = new Schema.SetClientDhParamsRequest(fakeNonce, fakeServerNonce, fakeGb)
-        
+        let request: Schema.SetClientDhParamsRequest =
+            new Schema.SetClientDhParamsRequest(fakeNonce, fakeServerNonce, fakeGb)
+
         let tlObject: ITlObject = request :> ITlObject
 
         use writer: TlWriter = new TlWriter()
-        
+
         tlObject.Serialize writer
-        
+
         let result: byte array = writer.ToBytes()
 
         // 4 bytes Constructor ID (0xf5045f1f) -> Little Endian: [0x1f; 0x5f; 0x04; 0xf5]
@@ -131,9 +135,9 @@ type TlWriterTests() =
         let expectedHeader: byte array = [| 0x1Fuy; 0x5Fuy; 0x04uy; 0xF5uy |]
 
         Assert.Equal(-184262881, tlObject.ConstructorId)
-        
+
         Assert.NotEmpty result
-        
+
         Assert.Equal<byte>(expectedHeader, result.[0..3])
 
 
@@ -141,8 +145,8 @@ type TlWriterTests() =
 type TlReaderTests() =
 
     [<Fact>]
-    member _.``TlReader must successfully decode integers and long integers`` (): unit =
-        
+    member _.``TlReader must successfully decode integers and long integers``() : unit =
+
         use writer: TlWriter = new TlWriter()
 
         writer.WriteInt 1337
@@ -161,7 +165,7 @@ type TlReaderTests() =
 
 
     [<Fact>]
-    member _.``TlReader must correctly skip alignment padding when reading strings`` (): unit =
+    member _.``TlReader must correctly skip alignment padding when reading strings``() : unit =
 
         use writer: TlWriter = new TlWriter()
 
@@ -181,7 +185,7 @@ type TlReaderTests() =
 
 
     [<Fact>]
-    member _.``TlReader and TlWriter must seamlessly handle large byte arrays`` (): unit =
+    member _.``TlReader and TlWriter must seamlessly handle large byte arrays``() : unit =
 
         let originalData: byte array = Array.init 300 (fun i -> byte (i % 256))
 
@@ -199,52 +203,63 @@ type TlReaderTests() =
 
         Assert.False(reader.HasMore())
 
-    
+
     [<Fact>]
-    member _.``PingRequest must correctly serialize its constructor ID and long parameter`` (): unit =
-        
+    member _.``PingRequest must correctly serialize its constructor ID and long parameter``() : unit =
+
         let request: Schema.PingRequest = new Schema.PingRequest 1L
-    
+
         let tlObject: ITlObject = request :> ITlObject
 
         use writer: TlWriter = new TlWriter()
-        
+
         tlObject.Serialize writer
-        
+
         let result: byte array = writer.ToBytes()
 
-        let expected: byte array = [| 
-        
-            0xecuy; 0x97uy; 0xbeuy; 0x7auy; 
-        
-            1uy; 0uy; 0uy; 0uy; 0uy; 0uy; 0uy; 0uy 
-        
-        |]
+        let expected: byte array =
+            [|
+
+               0xecuy
+               0x97uy
+               0xbeuy
+               0x7auy
+
+               1uy
+               0uy
+               0uy
+               0uy
+               0uy
+               0uy
+               0uy
+               0uy
+
+               |]
 
         Assert.Equal(2059311084, tlObject.ConstructorId)
-        
+
         Assert.Equal<byte>(expected, result)
 
 
     [<Fact>]
-    member _.``PongResponse must correctly deserialize its fields from a binary stream`` (): unit =
-    
+    member _.``PongResponse must correctly deserialize its fields from a binary stream``() : unit =
+
         let expectedMsgId: int64 = 6543210987654321L
-    
+
         let expectedPingId: int64 = 123456789012345L
 
         use writer: TlWriter = new TlWriter()
 
-        writer.WriteInt 879202576 
+        writer.WriteInt 879202576
 
         writer.WriteLong expectedMsgId
 
         writer.WriteLong expectedPingId
-        
+
         let binaryPacket: byte array = writer.ToBytes()
 
         use reader: TlReader = new TlReader(binaryPacket)
-        
+
         let parsedConstructorId: int = reader.ReadInt()
 
         Assert.Equal(879202576, parsedConstructorId)
@@ -259,178 +274,185 @@ type TlReaderTests() =
 
 
     [<Fact>]
-    member _.``ResPqResponse must correctly serialize and deserialize vectors and fixed byte blocks`` (): unit =
-    
+    member _.``ResPqResponse must correctly serialize and deserialize vectors and fixed byte blocks``() : unit =
+
         let nonce: byte array = Array.init 16 (fun i -> byte (i + 1))
-    
+
         let serverNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
-    
+
         let pq: byte array = [| 0x12uy; 0x34uy; 0x56uy |]
-    
+
         let fingerprints: int64 array = [| 11111111L; 22222222L |]
 
-        let originalResponse: Schema.ResPqResponse = new Schema.ResPqResponse(nonce, serverNonce, pq, fingerprints)
-    
+        let originalResponse: Schema.ResPqResponse =
+            new Schema.ResPqResponse(nonce, serverNonce, pq, fingerprints)
+
         let tlObject: ITlObject = originalResponse :> ITlObject
 
         use writer: TlWriter = new TlWriter()
-    
+
         tlObject.Serialize writer
-    
+
         let bytes: byte array = writer.ToBytes()
 
         use reader: TlReader = new TlReader(bytes)
-    
+
         let parsedConstructorId: int = reader.ReadInt()
-    
+
         Assert.Equal(85337187, parsedConstructorId)
 
         let deserialized: Schema.ResPqResponse = Schema.ResPqResponse.Deserialize reader
 
         Assert.Equal<byte>(nonce, deserialized.Nonce)
-    
+
         Assert.Equal<byte>(serverNonce, deserialized.ServerNonce)
-    
+
         Assert.Equal<byte>(pq, deserialized.Pq)
-    
+
         Assert.Equal<int64>(fingerprints, deserialized.Fingerprints)
-    
+
         Assert.False(reader.HasMore())
 
 
     [<Fact>]
-    member _.``ServerDhParamsFailResponse must correctly serialize and deserialize all fixed int128 blocks`` (): unit =
-        
+    member _.``ServerDhParamsFailResponse must correctly serialize and deserialize all fixed int128 blocks``() : unit =
+
         let expectedNonce: byte array = Array.init 16 (fun i -> byte (i + 1))
-        
+
         let expectedServerNonce: byte array = Array.init 16 (fun i -> byte (i + 10))
-        
+
         let expectedNewNonceHash: byte array = Array.init 16 (fun i -> byte (i + 20))
 
         use writer: TlWriter = new TlWriter()
-        
+
         writer.WriteInt 2043348061 // server_DH_params_fail constructor ID
-        
+
         writer.WriteBytesFixed expectedNonce
-        
+
         writer.WriteBytesFixed expectedServerNonce
-        
+
         writer.WriteBytesFixed expectedNewNonceHash
-        
+
         let packet: byte array = writer.ToBytes()
 
         use reader: TlReader = new TlReader(packet)
-        
+
         let parsedId: int = reader.ReadInt()
-        
+
         Assert.Equal(2043348061, parsedId)
 
-        let response: Schema.ServerDhParamsFailResponse = Schema.ServerDhParamsFailResponse.Deserialize reader
+        let response: Schema.ServerDhParamsFailResponse =
+            Schema.ServerDhParamsFailResponse.Deserialize reader
 
         Assert.Equal<byte>(expectedNonce, response.Nonce)
-        
+
         Assert.Equal<byte>(expectedServerNonce, response.ServerNonce)
-        
+
         Assert.Equal<byte>(expectedNewNonceHash, response.NewNonceHash)
-        
+
         Assert.False(reader.HasMore())
 
     [<Fact>]
-    member _.``ServerDhParamsOkResponse must correctly deserialize dynamic bytes payload alongside fixed primitives`` (): unit =
-        
+    member _.``ServerDhParamsOkResponse must correctly deserialize dynamic bytes payload alongside fixed primitives``
+        ()
+        : unit =
+
         let expectedNonce: byte array = Array.init 16 (fun i -> byte (i + 5))
-        
+
         let expectedServerNonce: byte array = Array.init 16 (fun i -> byte (i + 15))
-        
+
         let expectedEncryptedAnswer: byte array = Array.init 128 (fun i -> byte (i % 256))
 
         use writer: TlWriter = new TlWriter()
-        
+
         writer.WriteInt -784117408 // server_DH_params_ok constructor ID
-        
+
         writer.WriteBytesFixed expectedNonce
-        
+
         writer.WriteBytesFixed expectedServerNonce
-        
+
         writer.WriteBytes expectedEncryptedAnswer
-        
+
         let packet: byte array = writer.ToBytes()
 
         use reader: TlReader = new TlReader(packet)
-        
+
         let parsedId: int = reader.ReadInt()
-        
+
         Assert.Equal(-784117408, parsedId)
 
-        let response: Schema.ServerDhParamsOkResponse = Schema.ServerDhParamsOkResponse.Deserialize reader
+        let response: Schema.ServerDhParamsOkResponse =
+            Schema.ServerDhParamsOkResponse.Deserialize reader
 
         Assert.Equal<byte>(expectedNonce, response.Nonce)
 
         Assert.Equal<byte>(expectedServerNonce, response.ServerNonce)
-        
+
         Assert.Equal<byte>(expectedEncryptedAnswer, response.EncryptedAnswer)
-        
+
         Assert.False(reader.HasMore())
 
 
     [<Fact>]
-    member _.``ServerDhInnerData must correctly deserialize complex combinations of dynamic and fixed fields`` (): unit =
-    
+    member _.``ServerDhInnerData must correctly deserialize complex combinations of dynamic and fixed fields``
+        ()
+        : unit =
+
         let expectedNonce: byte array = Array.init 16 (fun i -> byte (i + 3))
-    
+
         let expectedServerNonce: byte array = Array.init 16 (fun i -> byte (i + 13))
-    
+
         let expectedG: int = 3
-    
+
         let expectedDhPrime: byte array = [| 0xAAuy; 0xBBuy; 0xCCuy |]
-    
+
         let expectedGA: byte array = [| 0xDDuy; 0xEEuy; 0xFFuy |]
-    
+
         let expectedServerTime: int = 17171717
 
         // 1. We wrap the fake decrypted block into a stream using TlWriter.
 
         use writer: TlWriter = new TlWriter()
-    
+
         writer.WriteInt -1249256931 // server_DH_inner_data constructor ID
-    
+
         writer.WriteBytesFixed expectedNonce
-    
+
         writer.WriteBytesFixed expectedServerNonce
-    
+
         writer.WriteInt expectedG
-    
+
         writer.WriteBytes expectedDhPrime
-    
+
         writer.WriteBytes expectedGA
-    
+
         writer.WriteInt expectedServerTime
-    
+
         let packet: byte array = writer.ToBytes()
 
         // 2. Deserialize an object from a binary stream.
-    
+
         use reader: TlReader = new TlReader(packet)
-    
+
         let parsedId: int = reader.ReadInt()
-    
+
         Assert.Equal(-1249256931, parsedId)
 
-        let innerData: Schema.ServerDhInnerData = Schema.ServerDhInnerData.Deserialize reader
+        let innerData: Schema.ServerDhInnerData =
+            Schema.ServerDhInnerData.Deserialize reader
 
         // 3. Verifying the restored fields
-    
-        Assert.Equal<byte>(expectedNonce, innerData.Nonce)
-    
-        Assert.Equal<byte>(expectedServerNonce, innerData.ServerNonce)
-    
-        Assert.Equal(expectedG, innerData.G)
-    
-        Assert.Equal<byte>(expectedDhPrime, innerData.DhPrime)
-    
-        Assert.Equal<byte>(expectedGA, innerData.GA)
-    
-        Assert.Equal(expectedServerTime, innerData.ServerTime)
-    
-        Assert.False(reader.HasMore())
 
+        Assert.Equal<byte>(expectedNonce, innerData.Nonce)
+
+        Assert.Equal<byte>(expectedServerNonce, innerData.ServerNonce)
+
+        Assert.Equal(expectedG, innerData.G)
+
+        Assert.Equal<byte>(expectedDhPrime, innerData.DhPrime)
+
+        Assert.Equal<byte>(expectedGA, innerData.GA)
+
+        Assert.Equal(expectedServerTime, innerData.ServerTime)
+
+        Assert.False(reader.HasMore())
