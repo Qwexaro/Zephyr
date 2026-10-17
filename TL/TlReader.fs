@@ -11,115 +11,122 @@
 namespace Zephyr.TL
 
 open System
-open System.IO
 open System.Text
+open System.Buffers.Binary
 
-type TlReader(bytes: byte[]) =
-
-    let stream = new MemoryStream(bytes)
-
-    let reader = new BinaryReader(stream)
+type TlReader(bytes: ReadOnlyMemory<byte>) =
+    let mutable position: int = 0
 
     /// Check if there is any data left to read.
-    member _.HasMore() = stream.Position < stream.Length
+    member _.HasMore() = position < bytes.Length
 
     /// Read a 32-bit integer (Little Endian)
-    member _.ReadInt() = reader.ReadInt32()
+    member _.ReadInt() =
+        
+        let span: ReadOnlySpan<byte> = bytes.Span
+        
+        if position + 4 > span.Length then invalidOp "Attempt to read beyond the stream"
+        
+        let value: int = BinaryPrimitives.ReadInt32LittleEndian(span.Slice(position, 4))
+        
+        position <- position + 4
+        
+        value
 
     /// Read a 64-bit integer (Little Endian)
-    member _.ReadLong() = reader.ReadInt64()
+    member _.ReadLong() =
+        
+        let span: ReadOnlySpan<byte> = bytes.Span
+        
+        if position + 8 > span.Length then invalidOp "Attempt to read beyond the stream"
+        
+        let value: int64 = BinaryPrimitives.ReadInt64LittleEndian(span.Slice(position, 8))
+        
+        position <- position + 8
+        
+        value
 
     /// Read a byte array according to Telegram's rules (taking 4-byte alignment into account).
-    member _.ReadBytes() =
+    member _.ReadBytes() : byte array =
+        
+        let span: ReadOnlySpan<byte> = bytes.Span
+        
+        if position >= span.Length then invalidOp "Attempt to read beyond the stream"
+        
+        let firstByte: byte = span[position]
+        
+        position <- position + 1
 
-        if stream.Position >= stream.Length then
+        let (length: int), (headerSize: int) = 
+            
+            if firstByte < 254uy then int firstByte, 0
+            
+            else
+                
+                if position + 3 > span.Length then invalidOp "Malformed TL padding header"
+                
+                let l: int = int span[position] + (int span[position + 1] <<< 8) + (int span[position + 2] <<< 16)
+                
+                l, 3
+        
+        position <- position + headerSize
 
-            invalidOp "Attempt to read beyond the stream"
+        if position + length > span.Length then raise (IO.EndOfStreamException "Failed to read the stated number of bytes!")
 
-        let firstByte = reader.ReadByte()
+        let data: byte array = span.Slice(position, length).ToArray()
+        
+        position <- position + length
 
-        let mutable length = 0
-
-        let mutable padding = 0
-
-        if firstByte < 254uy then
-
-            length <- int firstByte
-
-            let totalWritten = 1 + length
-
-            let rem = totalWritten % 4
-
-            if rem <> 0 then
-
-                padding <- 4 - rem
-
-        else
-
-            let b1 = reader.ReadByte()
-
-            let b2 = reader.ReadByte()
-
-            let b3 = reader.ReadByte()
-
-            length <- int b1 + (int b2 <<< 8) + (int b3 <<< 16)
-
-            let rem = length % 4
-
-            if rem <> 0 then
-
-                padding <- 4 - rem
-
-        let data = reader.ReadBytes length
-
-        if data.Length <> length then
-
-            raise (EndOfStreamException "Failed to read the stated number of bytes!")
-
-        if padding > 0 then
-
-            for _ in 1..padding do
-
-                reader.ReadByte() |> ignore
+        let totalBytesRead: int = (if firstByte < 254uy then 1 else 4) + length
+        
+        let rem: int = totalBytesRead % 4
+        
+        let padding: int = if rem <> 0 then 4 - rem else 0
+        
+        if position + padding > span.Length then raise (IO.EndOfStreamException "Invalid TL padding alignment")
+        
+        position <- position + padding
 
         data
 
-    /// <summary>
     /// Converts the read TL bytes into UTF-8 text
-    /// </summary>
     member this.ReadString() =
+        
+        let span: ReadOnlySpan<byte> = bytes.Span
 
-        let bytes = this.ReadBytes()
+        if position >= span.Length then invalidOp "Attempt to read beyond the stream"
+        
+        let firstByte: byte = span[position]
+        
+        let currentPos: int = position
+        
+        let _ = this.ReadBytes()
+        
+        let (length: int), (headerSize: int) = 
 
-        Encoding.UTF8.GetString bytes
+            if firstByte < 254uy then int firstByte, 1
+            
+            else 
+                
+                let l: int = int span[currentPos + 1] + (int span[currentPos + 2] <<< 8) + (int span[currentPos + 3] <<< 16)
+                
+                l, 4
+                
+        let stringSpan: ReadOnlySpan<byte> = span.Slice(currentPos + headerSize, length)
+        
+        Encoding.UTF8.GetString stringSpan
 
-    /// <summary>
-    /// Read a fixed number of raw bytes directly from the stream without parsing TL length headers.
-    /// Used for reading fixed crypto primitives like int128 (nonce) or int256.
-    /// </summary>
+    /// Read a fixed number of raw bytes directly from the stream
     member _.ReadBytesFixed(count: int) : byte array =
 
-        if stream.Position + int64 count > stream.Length then
-
-            invalidOp "Attempt to read fixed bytes beyond the end of the stream."
-
-        let data = reader.ReadBytes count
-
-        if data.Length <> count then
-
-            raise (EndOfStreamException "Failed to read the exact number of fixed bytes from the stream.")
-
+        let span: ReadOnlySpan<byte> = bytes.Span
+    
+        if position + count > span.Length then invalidOp "Attempt to read fixed bytes beyond the end of the stream."
+        
+        let data: byte array = span.Slice(position, count).ToArray()
+        
+        position <- position + count
+        
         data
 
-
-    interface IDisposable with
-
-        /// <summary>
-        /// Implementing the IDisposable interface ensures that we can immediately
-        /// close the MemoryStream and BinaryReader
-        /// </summary>
-        member _.Dispose() =
-
-            reader.Dispose()
-
-            stream.Dispose()
+    interface IDisposable with member _.Dispose() = ()
